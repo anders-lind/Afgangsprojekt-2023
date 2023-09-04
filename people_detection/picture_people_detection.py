@@ -27,33 +27,35 @@ def draw_landmarks_on_image(rgb_image, detection_result):
       solutions.drawing_styles.get_default_pose_landmarks_style())
   return annotated_image
 
+
 def picture_detection(picture_file_name):
-    img = cv2.imread(picture_file_name)
-    cv2.imshow("image", img)
-    cv2.waitKey(0)
+  file_path = os.getcwd()
+  img = cv2.imread(file_path + "/" + picture_file_name)
+  cv2.imshow("image", img)
+  cv2.waitKey(0)
 
-    # STEP 2: Create an PoseLandmarker object.
-    base_options = python.BaseOptions(model_asset_path='setup_files/pose_landmarker.task')
-    options = vision.PoseLandmarkerOptions(
-        base_options=base_options,
-        output_segmentation_masks=True)
-    detector = vision.PoseLandmarker.create_from_options(options)
+  # STEP 2: Create an PoseLandmarker object.
+  base_options = python.BaseOptions(model_asset_path='setup_files/pose_landmarker.task')
+  options = vision.PoseLandmarkerOptions(
+      base_options=base_options,
+      output_segmentation_masks=True)
+  detector = vision.PoseLandmarker.create_from_options(options)
 
-    # STEP 3: Load the input image.
-    image = mp.Image.create_from_file(picture_file_name)
+  # STEP 3: Load the input image.
+  image = mp.Image.create_from_file(picture_file_name)
 
-    # STEP 4: Detect pose landmarks from the input image.
-    detection_result = detector.detect(image)
+  # STEP 4: Detect pose landmarks from the input image.
+  detection_result = detector.detect(image)
 
-    # STEP 5: Process the detection result. In this case, visualize it.
-    annotated_image = draw_landmarks_on_image(image.numpy_view(), detection_result)
-    cv2.imshow("imge", cv2.cvtColor(annotated_image, cv2.COLOR_RGB2BGR))
-    cv2.waitKey(0)
+  # STEP 5: Process the detection result. In this case, visualize it.
+  annotated_image = draw_landmarks_on_image(image.numpy_view(), detection_result)
+  cv2.imshow("imge", cv2.cvtColor(annotated_image, cv2.COLOR_RGB2BGR))
+  cv2.waitKey(0)
 
-    segmentation_mask = detection_result.segmentation_masks[0].numpy_view()
-    visualized_mask = np.repeat(segmentation_mask[:, :, np.newaxis], 3, axis=2) * 255
-    cv2.imshow("mask", visualized_mask)
-    cv2.waitKey(0)
+  segmentation_mask = detection_result.segmentation_masks[0].numpy_view()
+  visualized_mask = np.repeat(segmentation_mask[:, :, np.newaxis], 3, axis=2) * 255
+  cv2.imshow("mask", visualized_mask)
+  cv2.waitKey(0)
 
 if __name__ == "__main__":
-   picture_detection("videos_and_images/image.jpg")
+  picture_detection("videos_and_images/image.jpg")
