@@ -36,7 +36,7 @@ def picture_detection(picture_file_name):
     cv2.waitKey(0)
 
     # STEP 2: Create an PoseLandmarker object.
-    base_options = python.BaseOptions(model_asset_path='setup_files/pose_landmarker.task')
+    base_options = python.BaseOptions(model_asset_path='people_detection/setup_files/pose_landmarker.task')
     options = vision.PoseLandmarkerOptions(
             base_options=base_options,
             output_segmentation_masks=True)
@@ -59,4 +59,4 @@ def picture_detection(picture_file_name):
     cv2.waitKey(0)
 
 if __name__ == "__main__":
-    picture_detection("videos_and_images/image.jpg")
+    picture_detection("people_detection/videos_and_images/image.jpg")

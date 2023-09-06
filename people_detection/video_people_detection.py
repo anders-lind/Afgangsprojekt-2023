@@ -32,7 +32,7 @@ def video_detection(video_file_name):
   file_path = os.getcwd()
   video_file_path = file_path + "/" + video_file_name
   
-  base_options = python.BaseOptions(model_asset_path=file_path + '/setup_files/pose_landmarker.task')
+  base_options = python.BaseOptions(model_asset_path=file_path + '/people_detection/setup_files/pose_landmarker.task')
   options = vision.PoseLandmarkerOptions(
       base_options=base_options,
       output_segmentation_masks=True)
@@ -70,4 +70,4 @@ def video_detection(video_file_name):
   cv2.waitKey(1)
 
 if __name__ == "__main__":
-  video_detection("videos_and_images/video_walking.mp4")
+  video_detection("people_detection/videos_and_images/video_walking.mp4")
