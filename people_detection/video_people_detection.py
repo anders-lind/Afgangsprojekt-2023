@@ -20,11 +20,17 @@ def draw_landmarks_on_image(rgb_image, detection_result):
         pose_landmarks_proto.landmark.extend([
             landmark_pb2.NormalizedLandmark(x=landmark.x, y=landmark.y, z=landmark.z) for landmark in pose_landmarks
         ])
+
+        print("Pose_landmarks_proto: ", pose_landmarks_proto)
+
         solutions.drawing_utils.draw_landmarks(
         annotated_image,
         pose_landmarks_proto,
         solutions.pose.POSE_CONNECTIONS,
         solutions.drawing_styles.get_default_pose_landmarks_style())
+
+        print("solutions.pose.POSE_CONNECTIONS: ", solutions.pose.POSE_CONNECTIONS)
+
     return annotated_image
 
 
