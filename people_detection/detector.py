@@ -60,10 +60,16 @@ class Detector():
         cv2.waitKey(0)
 
     
-    def get_landmarks(self):
+    def get_pose_landmarks(self):
         pose_landmarks_list = self.detection_result.pose_landmarks
         pose_landmarks = pose_landmarks_list[0]
         return pose_landmarks
+    
+
+    def get_pose_world_landmarks(self):
+        pose_landmarks_list = self.detection_result.pose_world_landmarks
+        pose_world_landmarks = pose_landmarks_list[0]
+        return pose_world_landmarks
     
 
     def __resizeWithAspectRatio(self, image, width=None, height=None, inter=cv2.INTER_AREA):
