@@ -6,21 +6,23 @@ from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 from mediapipe.framework.formats import landmark_pb2
 
-import rospy
-from std_msgs.msg import Int8
-import cv2
-import numpy as np
-import time
-
 from person_manager.msg import PoseArray
 from person_manager.msg import Pose
 from person_manager.msg import Landmark
 
-
 from src.people_detection.detector import Detector
 
+import rospy
+import cv2
+import numpy as np
+import os
 
-def callback(result: vision.PoseLandmarkerResult, output_image: np.ndarray, timestamp_ms: int = None):
+
+file_path = os.path.dirname(os.path.realpath(__file__))
+project_path = os.getcwd()
+
+
+def publish_poses(result: vision.PoseLandmarkerResult, output_image: np.ndarray, timestamp_ms: int = None):
         # number_of_poses: int = len(result.pose_landmarks)
         number_of_poses: int = len(result.pose_world_landmarks)
         number_of_landmarks: int = 33
@@ -42,7 +44,6 @@ def callback(result: vision.PoseLandmarkerResult, output_image: np.ndarray, time
             pose_array.poses.append(pose)
 
         pose_publisher.publish(pose_array)
-        print("Results: ", number_of_poses, " image:", len(output_image), len(output_image[0]), "time: ", timestamp_ms)
 
 
 def process_poses(pose_array: PoseArray):
@@ -61,7 +62,7 @@ if __name__ == "__main__":
         data_class=PoseArray
         )
     
-    # Pose subscriber
+    # Pose subscriber test
     pose_subsriber = rospy.Subscriber(
          name="persons/poses",
          data_class=PoseArray,
@@ -69,14 +70,27 @@ if __name__ == "__main__":
     )
 
 
+
+
     ### IMAGE ###
-    # detector = Detector(picture_file_name="scripts/src/people_detection/videos_and_images/a i-pose 1.jpg")
+    # detector = Detector(
+    #   picture_file_name="scripts/src/people_detection/videos_and_images/a i-pose 1.jpg"
+    #   )
+    
     ### WEB CAM ###
-    detector = Detector(VideoCapture=cv2.VideoCapture(0), callback_function=callback)
-    detector.webcam_begin_detect()
-    # detector.show_landmarks_image()
+    # detector = Detector(
+    #   VideoCapture=cv2.VideoCapture(0),
+    #   callback_function=publish_poses
+    #   )
+    # detector.webcam_begin_detect()
+    # detector.webcam_stop_detect()
+    
+    ## ROS TOPIC ##
+    detector = Detector(
+        ROS_image_topic="/camera_floor/driver/color/image_raw"
+        )
 
 
 
     rospy.spin()
-    detector.webcam_stop_detect()
+    

@@ -8,6 +8,11 @@ from mediapipe.tasks.python import vision
 import os
 import math
 
+
+file_path = os.path.dirname(os.path.realpath(__file__))
+project_path = os.getcwd()
+
+
 def draw_landmarks_on_image(rgb_image, detection_result):
     pose_landmarks_list = detection_result.pose_landmarks
     annotated_image = np.copy(rgb_image)

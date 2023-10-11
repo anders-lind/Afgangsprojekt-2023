@@ -4,57 +4,116 @@ from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 from mediapipe.framework.formats import landmark_pb2
 
+from sensor_msgs.msg import Image
+
+import rospy
 import numpy as np
 import cv2
 import time
-
 import threading
+import os
 
+
+file_path = os.path.dirname(os.path.realpath(__file__))
+project_path = os.getcwd()
 
 
 class Detector():
-    def __init__(self, VideoCapture: cv2.VideoCapture = None, picture_file_name: str = None, callback_function: callable = None):        
+    def __init__(self, ROS_image_topic: str = None, VideoCapture: cv2.VideoCapture = None, picture_file_name: str = None, callback_function: callable = None):        
         # Member variables
+        self.image = None
         self.detector = None
         self.detection_result = None
-        self.image = None
-        self.video_capture = VideoCapture
-        self.callback_function = callback_function
+        self.ROS_image_topic_subscriber = None
+        self.webcam_running = False
+        self.video_capture = None
+        self.ROS_image_topic = None
+        self.callback_function = None
         # Threads
-        self.detect_thread: threading.Thread = threading.Thread(target=self.__webcam_detect)
+        self.webcam_detect_thread: threading.Thread = threading.Thread(target=self.__webcam_detect)
         self.show_landmarks_thread: threading.Thread = threading.Thread(target=self.__show_landmarks_image_async_internal)
-        
+        self.ROS_topic_detect_thread: threading.Thread = threading.Thread(target=self.__ROS_topic_detect)
         max_poses = 10
 
 
         # Image setup
         if picture_file_name != None:
-            # STEP 2: Create an PoseLandmarker object.            
+            # Create options
             options = vision.PoseLandmarkerOptions(
-                base_options=python.BaseOptions(model_asset_path='scripts/src/people_detection/setup_files/pose_landmarker.task'),
+                base_options=python.BaseOptions(model_asset_path=file_path+'/setup_files/pose_landmarker.task'),
                 num_poses = max_poses,
                 output_segmentation_masks=True,
             )
+            # Create detector from options
             self.detector = vision.PoseLandmarker.create_from_options(options)
 
-            # STEP 3: Load the input image.
+            # Load the input image.
             self.image = mp.Image.create_from_file(picture_file_name)
 
-            # STEP 4: Detect pose landmarks from the input image.
+            # Detect pose landmarks from the input image.
             self.detection_result = self.detector.detect(self.image)
+
+            print("Image detector created")
+
 
         # Stream setup
         if VideoCapture != None:
+            self.video_capture = VideoCapture
+            self.callback_function = callback_function
+
+            # Create options
             options = vision.PoseLandmarkerOptions(
                 base_options = python.BaseOptions(model_asset_path='scripts/src/people_detection/setup_files/pose_landmarker.task'),
                 num_poses = max_poses,
                 running_mode = vision.RunningMode.LIVE_STREAM,
-                result_callback=self.detection_callback
+                result_callback=self.stream_detection_callback
             )
+            # Create detector from options
             self.detector = vision.PoseLandmarker.create_from_options(options)
 
+            print("Stream detector created")
+            
 
-    def detection_callback(self, result: vision.PoseLandmarkerResult, output_image: mp.Image, timestamp_ms: int):
+        # ROS topic setup
+        if ROS_image_topic != None:
+            self.ROS_image_topic = ROS_image_topic
+
+            # Create options
+            options = vision.PoseLandmarkerOptions(
+                base_options = python.BaseOptions(model_asset_path=file_path+'/setup_files/pose_landmarker.task'),
+                num_poses = max_poses,
+                # running_mode = vision.RunningMode.VIDEO
+                running_mode = vision.RunningMode.IMAGE
+            )
+            # Create detector from options
+            self.detector = vision.PoseLandmarker.create_from_options(options)
+            
+            # Create subsriber
+            self.ROS_image_topic_subscriber = rospy.Subscriber(
+                name=self.ROS_image_topic,
+                data_class=Image,
+                callback=self.__ROS_new_image_callback
+            )
+
+            print("ROS topic image detector created")
+
+
+
+    def __ROS_new_image_callback(self, image: Image):
+        # Convert ROS Image.data to NumPy array
+        data_array = np.frombuffer(image.data, np.uint8)
+        data_array = data_array.reshape((image.height, image.width, 3))
+
+        # Create mp image
+        self.image = mp.Image(image_format=mp.ImageFormat.SRGB, data=data_array)
+
+        # Run detection
+        frame_timestamp_ms = round(time.time()*1000)
+        self.detector.detect(data_array)
+        
+
+
+    def stream_detection_callback(self, result: vision.PoseLandmarkerResult, output_image: mp.Image, timestamp_ms: int):
         self.detection_result = result
         # Call user-specified callback
         if self.callback_function != None:
@@ -63,13 +122,13 @@ class Detector():
     
     def webcam_begin_detect(self):
         self.webcam_running = True
-        self.detect_thread.start()
+        self.webcam_detect_thread.start()
         print("Webcam detection started")
 
 
     def webcam_stop_detect(self):
         self.webcam_running = False
-        self.detect_thread.join()
+        self.webcam_detect_thread.join()
         print("Webcam detection stopped")
 
 
@@ -82,6 +141,9 @@ class Detector():
             self.detector.detect_async(self.image, frame_timestamp_ms)
             # if cv2.waitKey(1) & 0xFF == ord('q'):
                 # break
+
+    def __ROS_topic_detect(self):
+        print("Detecting ROS topic image")
 
 
     def show_landmarks_image(self):
