@@ -8,6 +8,9 @@ from mediapipe.tasks.python import vision
 import os
 import math
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
+
 
 def get_tangentplane_and_normalvector(three_points_on_plane):
 
@@ -153,7 +156,7 @@ def picture_detection(picture_file_name):
 
 
     # DETECT 3D AND 2D POINTS OF LANDMARKS IN IMAGE
-    base_options = python.BaseOptions(model_asset_path='people_detection/setup_files/pose_landmarker.task')
+    base_options = python.BaseOptions(model_asset_path='src/people_detection/setup_files/pose_landmarker.task')
     options = vision.PoseLandmarkerOptions(
             base_options=base_options,
             output_segmentation_masks=True)
@@ -193,4 +196,4 @@ def picture_detection(picture_file_name):
 
 
 if __name__ == "__main__":
-    picture_detection("people_detection/videos_and_images/real_person_tpose.jpeg")
+    picture_detection("src/people_detection/videos_and_images/real_person_tpose.jpeg")

@@ -43,33 +43,33 @@ def test_distance_estimator(landmarks):
 
 if __name__ == "__main__":
     print("---- Test: T-pose 1 ----")
-    detector1 = Detector("people_detection/videos_and_images/a T-pose 1.jpg")
+    detector1 = Detector("src/people_detection/videos_and_images/a T-pose 1.jpg")
     test_distance_estimator(detector1.get_pose_world_landmarks())
-    detector1.show_landmarks()
+    detector1.show_landmarks_image()
 
     print("---- Test: T-pose 2 ----")
-    detector2 = Detector("people_detection/videos_and_images/a T-pose 2.jpg")
+    detector2 = Detector("src/people_detection/videos_and_images/a T-pose 2.jpg")
     test_distance_estimator(detector2.get_pose_world_landmarks())
-    detector2.show_landmarks()
+    detector2.show_landmarks_image()
 
     print("---- Test: i-pose 1 ----")
-    detector3 = Detector("people_detection/videos_and_images/a i-pose 1.jpg")
+    detector3 = Detector("src/people_detection/videos_and_images/a i-pose 1.jpg")
     test_distance_estimator(detector3.get_pose_world_landmarks())
-    detector3.show_landmarks()
+    detector3.show_landmarks_image()
 
     print("---- Test: i-pose 2 ----")
-    detector4 = Detector("people_detection/videos_and_images/a i-pose 2.jpg")
+    detector4 = Detector("src/people_detection/videos_and_images/a i-pose 2.jpg")
     test_distance_estimator(detector4.get_pose_world_landmarks())
-    detector4.show_landmarks()
+    detector4.show_landmarks_image()
 
     print("---- Test: l-pose 1 ----")
-    detector5 = Detector("people_detection/videos_and_images/a l-pose 1.jpg")
+    detector5 = Detector("src/people_detection/videos_and_images/a l-pose 1.jpg")
     test_distance_estimator(detector5.get_pose_world_landmarks())
-    detector5.show_landmarks()
+    detector5.show_landmarks_image()
 
     print("---- Test: l-pose 2 ----")
-    detector6 = Detector("people_detection/videos_and_images/a l-pose 2.jpg")
+    detector6 = Detector("src/people_detection/videos_and_images/a l-pose 2.jpg")
     test_distance_estimator(detector6.get_pose_world_landmarks())
-    detector6.show_landmarks()
+    detector6.show_landmarks_image()
 
 
