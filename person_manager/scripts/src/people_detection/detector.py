@@ -21,7 +21,8 @@ project_path = os.getcwd()
 class Detector():
     def __init__(self, ROS_image_topic: str = None, VideoCapture: cv2.VideoCapture = None, picture_file_name: str = None, callback_function: callable = None):        
         # Member variables
-        self.image = None
+        self.mp_image = None
+        self.np_image = None
         self.detector = None
         self.detection_result = None
         self.ROS_image_topic_subscriber = None
@@ -48,10 +49,10 @@ class Detector():
             self.detector = vision.PoseLandmarker.create_from_options(options)
 
             # Load the input image.
-            self.image = mp.Image.create_from_file(picture_file_name)
+            self.mp_image = mp.Image.create_from_file(picture_file_name)
 
             # Detect pose landmarks from the input image.
-            self.detection_result = self.detector.detect(self.image)
+            self.detection_result = self.detector.detect(self.mp_image)
 
             print("Image detector created")
 
@@ -66,7 +67,7 @@ class Detector():
                 base_options = python.BaseOptions(model_asset_path='scripts/src/people_detection/setup_files/pose_landmarker.task'),
                 num_poses = max_poses,
                 running_mode = vision.RunningMode.LIVE_STREAM,
-                result_callback=self.stream_detection_callback
+                result_callback=self.__stream_detection_callback
             )
             # Create detector from options
             self.detector = vision.PoseLandmarker.create_from_options(options)
@@ -83,7 +84,7 @@ class Detector():
                 base_options = python.BaseOptions(model_asset_path=file_path+'/setup_files/pose_landmarker.task'),
                 num_poses = max_poses,
                 # running_mode = vision.RunningMode.VIDEO
-                running_mode = vision.RunningMode.IMAGE
+                running_mode = vision.RunningMode.VIDEO
             )
             # Create detector from options
             self.detector = vision.PoseLandmarker.create_from_options(options)
@@ -102,18 +103,18 @@ class Detector():
     def __ROS_new_image_callback(self, image: Image):
         # Convert ROS Image.data to NumPy array
         data_array = np.frombuffer(image.data, np.uint8)
-        data_array = data_array.reshape((image.height, image.width, 3))
+        self.np_image = data_array.reshape((image.height, image.width, 3))
 
         # Create mp image
-        self.image = mp.Image(image_format=mp.ImageFormat.SRGB, data=data_array)
+        self.mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=self.np_image)
 
         # Run detection
         frame_timestamp_ms = round(time.time()*1000)
-        self.detector.detect(data_array)
+        self.detection_result = self.detector.detect_for_video(self.mp_image,frame_timestamp_ms)
         
 
 
-    def stream_detection_callback(self, result: vision.PoseLandmarkerResult, output_image: mp.Image, timestamp_ms: int):
+    def __stream_detection_callback(self, result: vision.PoseLandmarkerResult, output_image: mp.Image, timestamp_ms: int):
         self.detection_result = result
         # Call user-specified callback
         if self.callback_function != None:
@@ -136,9 +137,9 @@ class Detector():
         while self.webcam_running:
             cam = self.video_capture.read()[1]
             cam = cv2.cvtColor(cam, cv2.COLOR_BGR2RGB)
-            self.image = mp.Image(image_format=mp.ImageFormat.SRGB, data=cam)
+            self.mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=cam)
             frame_timestamp_ms = round(time.time()*1000)
-            self.detector.detect_async(self.image, frame_timestamp_ms)
+            self.detector.detect_async(self.mp_image, frame_timestamp_ms)
             # if cv2.waitKey(1) & 0xFF == ord('q'):
                 # break
 
@@ -147,14 +148,16 @@ class Detector():
 
 
     def show_landmarks_image(self):
+        print("Showing detection results")
         while True:
             
             # Check if variables are set
-            if type(self.detection_result) == type(None) or type(self.image) == type(None):
+            if type(self.detection_result) == type(None) or type(self.mp_image) == type(None):
+                print("Variables not set")
                 continue
-    
+                
             pose_landmarks_list = self.detection_result.pose_landmarks
-            annotated_image = np.copy(self.image.numpy_view())
+            annotated_image = np.copy(self.mp_image.numpy_view())
 
             # Loop through the detected poses to visualize.
             for idx in range(len(pose_landmarks_list)):
@@ -173,13 +176,15 @@ class Detector():
 
             image = cv2.cvtColor(annotated_image, cv2.COLOR_RGB2BGR)
             # Resize and rotate image
-            resized_image = self.__resizeWithAspectRatio(image, 800,800)
-            # resized_image = cv2.rotate(resized_image, cv2.ROTATE_90_CLOCKWISE)
+            image = self.__resizeWithAspectRatio(image, 800,800)
+            # image = cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
             
-            cv2.imshow("imge", resized_image)
+            cv2.imshow("imge", image)
             
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
+
+        print("Stopped showing detection results")
 
 
 
@@ -192,11 +197,11 @@ class Detector():
     def __show_landmarks_image_async_internal(self):
         while True:
             # Check if variables are set
-            if type(self.detection_result) == type(None) or type(self.image) == type(None):
+            if type(self.detection_result) == type(None) or type(self.mp_image) == type(None):
                 continue
     
             pose_landmarks_list = self.detection_result.pose_landmarks
-            annotated_image = np.copy(self.image.numpy_view())
+            annotated_image = np.copy(self.mp_image.numpy_view())
 
             # Loop through the detected poses to visualize.
             for idx in range(len(pose_landmarks_list)):

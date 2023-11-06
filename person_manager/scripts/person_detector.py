@@ -72,9 +72,9 @@ if __name__ == "__main__":
 
 
 
-    ### IMAGE ###
+    # ### IMAGE ###
     # detector = Detector(
-    #   picture_file_name="scripts/src/people_detection/videos_and_images/a i-pose 1.jpg"
+    #   picture_file_name = file_path+"/src/people_detection/videos_and_images/mir_perspective.png"
     #   )
     
     ### WEB CAM ###
@@ -85,10 +85,12 @@ if __name__ == "__main__":
     # detector.webcam_begin_detect()
     # detector.webcam_stop_detect()
     
-    ## ROS TOPIC ##
+    ### ROS TOPIC ###
     detector = Detector(
         ROS_image_topic="/camera_floor/driver/color/image_raw"
         )
+    
+    detector.show_landmarks_image()
 
 
 
