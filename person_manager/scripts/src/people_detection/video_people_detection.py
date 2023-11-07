@@ -7,6 +7,11 @@ from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 import os
 
+
+file_path = os.path.dirname(os.path.realpath(__file__))
+project_path = os.getcwd()
+
+
 def draw_landmarks_on_image(rgb_image, detection_result):
     pose_landmarks_list = detection_result.pose_landmarks
     annotated_image = np.copy(rgb_image)
@@ -35,10 +40,9 @@ def draw_landmarks_on_image(rgb_image, detection_result):
 
 
 def video_detection(video_file_name):
-  file_path = os.getcwd()
-  video_file_path = file_path + "/" + video_file_name
+  video_file_path = file_path + "/videos_and_images/" + video_file_name
   
-  base_options = python.BaseOptions(model_asset_path=file_path + '/people_detection/setup_files/pose_landmarker.task')
+  base_options = python.BaseOptions(model_asset_path=file_path + '/setup_files/pose_landmarker.task')
   options = vision.PoseLandmarkerOptions(
       base_options=base_options,
       output_segmentation_masks=True)
@@ -76,4 +80,4 @@ def video_detection(video_file_name):
   cv2.waitKey(1)
 
 if __name__ == "__main__":
-  video_detection("people_detection/videos_and_images/video_walking.mp4")
+  video_detection("src/people_detection/videos_and_images/video_walking.mp4")

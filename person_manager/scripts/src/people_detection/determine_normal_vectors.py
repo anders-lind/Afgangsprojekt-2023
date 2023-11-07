@@ -10,6 +10,8 @@ import math
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
+file_path = os.path.dirname(os.path.abspath(__file__))
+
 def get_tangentplane_and_normalvector(three_points_on_plane):
 
     #three_points_on_plane : [[x0, y0, z0], [x1, y1, z1], [x2, y2, z2]]
@@ -147,19 +149,18 @@ def draw_plane_for_body(ax, points3d_np):
 def picture_detection(picture_file_name):
 
     #GET FILEPATH AND SHOW IMAGE
-    file_path = os.getcwd()
-    img = cv2.imread(file_path + "/" + picture_file_name)
-    # cv2.imshow("image", img)
-    # cv2.waitKey(0)
+    img = cv2.imread(file_path + "/videos_and_images/" + picture_file_name)
+    cv2.imshow("image", img)
+    cv2.waitKey(0)
 
 
     # DETECT 3D AND 2D POINTS OF LANDMARKS IN IMAGE
-    base_options = python.BaseOptions(model_asset_path='people_detection/setup_files/pose_landmarker.task')
+    base_options = python.BaseOptions(model_asset_path=file_path + '/setup_files/pose_landmarker.task')
     options = vision.PoseLandmarkerOptions(
             base_options=base_options,
             output_segmentation_masks=True)
     detector = vision.PoseLandmarker.create_from_options(options)
-    image = mp.Image.create_from_file(picture_file_name)
+    image = mp.Image.create_from_file(file_path + "/videos_and_images/" + picture_file_name)
     detection_result = detector.detect(image)
     annotated_image, points2d, points3d = draw_landmarks_on_image(image.numpy_view(), detection_result)
 
@@ -194,4 +195,4 @@ def picture_detection(picture_file_name):
 
 
 if __name__ == "__main__":
-    picture_detection("people_detection/videos_and_images/real_person_tpose.jpeg")
+    picture_detection("real_person_tpose.jpeg")
