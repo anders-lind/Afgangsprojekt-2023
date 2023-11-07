@@ -8,6 +8,7 @@ from mediapipe.tasks.python import vision
 import os
 import math
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
 def get_tangentplane_and_normalvector(three_points_on_plane):
 
