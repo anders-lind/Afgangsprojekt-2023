@@ -1,0 +1,13 @@
+
+Start roscore:
+roscore
+
+Launch Aruco-Detect launch file:
+roslaunch aruco_detect aruco_detect.launch dictionary:=0 fiducial_len:=0.2 publish_images:=true
+
+Launch Obstacle-detector launch file
+roslaunch obstacle_detector obstacle_detector.launch
+
+Start Rosbag:
+rosbag play -l Aruco_test_2023-11-13-13-11-03.bag /camera_floor/driver/color/camera_info:=/raspicam_node/camera_info /camera_floor/driver/color/image_raw/compressed:=/raspicam_node/image/compressed
+
