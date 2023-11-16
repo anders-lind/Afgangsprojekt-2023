@@ -36,7 +36,8 @@ class SAPF:
             time_step_size = 0.1,
             goal_th = 0.1,
             max_iterations = 1000,
-            noise_mag = 0.001
+            noise_mag = 0.001,
+            crash_dist = 0.05
         ):
 
         ### SAPF parameters ###
@@ -62,10 +63,12 @@ class SAPF:
         self.goal_th = goal_th
         self.max_iterations = max_iterations
         self.noise_mag = noise_mag
+        self.crash_dist = crash_dist
 
         ### Start configruation ###
         self.start = start_pos.copy()   # Required, otherwise memory leek
         self.pos = start_pos
+        self.start_theta = start_theta
         self.theta = start_theta
         self.omega = 0.0
         self.vel = 0.0
@@ -76,10 +79,17 @@ class SAPF:
         ### Obstacles ###
         self.obstacles = obstacles
         
+    def reset(self):
+        self.pos = self.start
+        self.theta = self.start_theta
+        self.omega = 0.0
+        self.vel = 0.0
 
 
-
-    def simulate_path(self, plot_path=True, plot_pots=True, plot_state=True, plot_pot_field=True):
+    def simulate_path(self, plot_path=False, plot_more=False, debug=False):
+        reached_goal = False
+        hit_obstacle = False
+        
         if plot_path:
             # Init
             x = np.zeros(1)
@@ -87,7 +97,7 @@ class SAPF:
             # Log
             x[0] = self.pos[0]
             y[0] = self.pos[1]
-        if plot_pots:
+        if plot_more:
             # Init
             pot_tot_x = np.zeros(1)
             pot_tot_y = np.zeros(1)
@@ -109,7 +119,7 @@ class SAPF:
             pot_rep_x[0] = rep[0]
             pot_rep_y[0] = rep[1]
             pot_rep_mag = norm(rep)
-        if plot_state:
+        if plot_more:
             # init
             theta_error = np.zeros(1)
             omega = np.zeros(1)
@@ -121,9 +131,9 @@ class SAPF:
             omega[0] = self.omega
             vel_mag[0] = norm(self.vel)
         
-
-        print("Start pos:", self.start)
-        print("Goal:", self.goal)
+        if debug:
+            print("Start pos:", self.start)
+            print("Goal:", self.goal)
 
         # Simulate movement
         i = 0
@@ -139,8 +149,8 @@ class SAPF:
             if plot_path:
                 x = np.append(x, self.pos[0])
                 y = np.append(y, self.pos[1])
-            # Log potential
-            if plot_pots:
+            if plot_more:
+                # Log potential
                 tot,att,rep = self.calc_potential_full(pos=self.pos, goal=self.goal)
                 pot_tot_x = np.append(pot_tot_x, tot[0])
                 pot_tot_y = np.append(pot_tot_y, tot[1])
@@ -151,36 +161,43 @@ class SAPF:
                 pot_rep_x = np.append(pot_rep_x, rep[0])
                 pot_rep_y = np.append(pot_rep_y, rep[1])
                 pot_rep_mag = np.append(pot_rep_mag, norm(rep))
-            # Log robot state
-            if plot_state:
+                # Log robot state
                 theta_error = np.append(theta_error, atan2(sin(theta_ref - self.theta), cos(theta_ref - self.theta)))
                 omega = np.append(omega, self.omega)
                 vel_mag = np.append(vel_mag, norm(self.vel))
 
+
             # If hit obstacle
             for o in range(len(obstacles)):
-                if norm(obstacles[o] - self.pos) < 0.05:
-                    print("Hit obstacle!")
+                if norm(obstacles[o] - self.pos) < self.crash_dist:
+                    hit_obstacle = True
+                    if debug:
+                        print("Hit obstacle!")
 
 
             # If at goal
             if norm(self.goal - self.pos) < self.goal_th:
-                print("At goal!")
+                reached_goal = True
+                if debug:
+                    print("At goal!")
+                    print("Speed:", norm(self.vel))
 
         # Print iterations
-        print("i =", i)
+        if debug: print("i =", i)
         time_axis = np.linspace(start=0, stop=i*self.time_step_size, num=i+1)
 
 
         ### Draw obstacles ###
         if plot_path:
             figure, axes = plt.subplots()
-            for i in range(len(self.obstacles)):    
-                obs_x = self.obstacles[i][0]
-                obs_y = self.obstacles[i][1]
+            for o in range(len(self.obstacles)):    
+                obs_x = self.obstacles[o][0]
+                obs_y = self.obstacles[o][1]
+                drawing_obs = plt.Circle( (obs_x, obs_y), self.crash_dist, fill = True, color=(0,0,0) )
                 drawing_d_safe = plt.Circle( (obs_x, obs_y), self.d_safe, fill = False )
                 drawing_d_vort = plt.Circle( (obs_x, obs_y), self.d_vort, fill = False )
                 drawing_Q_star = plt.Circle( (obs_x, obs_y), self.Q_star, fill = False )
+                axes.add_artist(drawing_obs)
                 axes.add_artist(drawing_d_safe)
                 axes.add_artist(drawing_d_vort)
                 axes.add_artist(drawing_Q_star)
@@ -193,7 +210,7 @@ class SAPF:
         
 
         ### Draw potential field ###
-        if plot_pot_field:
+        if plot_more:
             # Size limits
             lim_start = self.start
             lim_stop = self.goal*1.1
@@ -244,7 +261,7 @@ class SAPF:
 
 
         # Plot potentials
-        if plot_pots:
+        if plot_more:
             fig = plt.figure()
             plt.title("Potentials")
             plt.xlabel("time [s]")
@@ -253,11 +270,12 @@ class SAPF:
             plt.plot(time_axis, pot_att_mag, color = 'g', label="att")
             plt.plot(time_axis, pot_rep_mag, color = 'r', label="rep")
             plt.legend()
+            plt.grid()
         
 
 
         # Plot robot state
-        if plot_state:
+        if plot_more:
             fig = plt.figure()
             plt.title("Robot state")
             plt.xlabel("time [s]")
@@ -265,12 +283,24 @@ class SAPF:
             plt.plot(time_axis, omega, color='g', label="omega [radians/s]")
             plt.plot(time_axis, vel_mag, color='r', label="velocity_mag [m/s]")
             plt.legend()
+            plt.grid()
+        
+        # Plot position
+        if plot_more:
+            fig = plt.figure()
+            plt.title("Robot position")
+            plt.plot(time_axis, x, label="x")
+            plt.plot(time_axis, y, label="y")
+            plt.legend()
+            plt.grid()
         
 
         
         # Show plots
         if plot_path:
             plt.show()
+
+        return reached_goal, hit_obstacle, i*self.time_step_size
 
 
 
@@ -294,8 +324,7 @@ class SAPF:
         omega_ref = self.Kp_omega * theta_error
         omega_error = omega_ref - self.omega
         
-        # rot_acc = omega_error
-        rot_acc = omega_ref
+        rot_acc = omega_error
         if abs(rot_acc) > self.rot_a_max:
             if rot_acc < 0:
                 rot_acc = -self.rot_a_max
@@ -303,8 +332,7 @@ class SAPF:
                 rot_acc = self.rot_a_max
         
         # Calculate rotational speed
-        # self.omega = self.omega + rot_acc*self.time_step_size
-        self.omega = self.omega + omega_error
+        self.omega = self.omega + rot_acc*self.time_step_size
         if (self.omega > self.omega_max):
             self.omega = self.omega_max
 
@@ -377,7 +405,8 @@ class SAPF:
                 nablaU_repObj_i = np.zeros(2)
 
             # Calculate values used for vortex
-            alpha = self.theta - atan2(self.obstacles[i][1] - pos[1],self.obstacles[i][0] - pos[0])
+            # alpha = self.theta - atan2(self.obstacles[i][1] - pos[1],self.obstacles[i][0] - pos[0])
+            alpha = self.theta - atan2(pos[1] - self.obstacles[i][1],pos[0] - self.obstacles[i][0])
             alpha = atan2(sin(alpha), cos(alpha))
             
             if alpha <= self.alpha_th:
@@ -417,15 +446,20 @@ class SAPF:
         return nabla_U, nablaU_att, nablaU_rep
 
 
-def create_potential_field():
+# def create_potential_field():
+
+
 
 
 
 
 if __name__ == "__main__":
-    seed = int(random.random()*1000)
-    print("seed =", seed)
-    random.seed(seed)
+    # Good seeds
+    #20
+    #537
+    #492525103  
+    seed = random.randrange(1000000000)
+    print("seed:", seed)
     
     # Start, goal and obstacles
     start = [-10.0, -10.0]
@@ -442,9 +476,7 @@ if __name__ == "__main__":
         Q_star=1.0,
         d_safe=0.2,
         d_vort=0.35,
-        zeta=1.1547,
-        # zeta=2.1547,
-        # eta=0.0732,
+        zeta=2.1547,
         eta=0.732,
         alpha_th=radians(5),
         theta_max_error=radians(135),
@@ -463,10 +495,11 @@ if __name__ == "__main__":
         # Simulation
         goal_th=0.2,
         Kp_lin_a=0.2,
-        Kp_omega=0.15,
+        Kp_omega=1.6,
         time_step_size=0.1,
         max_iterations=10000,
-        noise_mag=0.001
+        noise_mag=0.001,
+        crash_dist = 0.1
     )
 
     sapf_humans = SAPF(
@@ -474,10 +507,8 @@ if __name__ == "__main__":
         d_star=2.0,
         Q_star=5.0,
         d_safe=0.2,
-        d_vort=1.2,
+        d_vort=2.0,
         zeta=0.3,
-        # zeta=2.1547,
-        # eta=0.0732,
         eta=3.8,
         alpha_th=radians(5),
         theta_max_error=radians(135),
@@ -496,16 +527,51 @@ if __name__ == "__main__":
         # Simulation
         goal_th=0.2,
         Kp_lin_a=0.2,
-        Kp_omega=0.15,
+        Kp_omega=0.6,
         time_step_size=0.1,
         max_iterations=10000,
-        noise_mag=0.001
+        noise_mag=0.001,
+        crash_dist = 0.1
     )
 
+    # Single test
+    if True:
+        result = sapf_obstacles.simulate_path(plot_path=True, plot_more=False)
+        # result = sapf_humans.simulate_path(plot_path=True, plot_more=False)
+        print(result)
+     
 
-    # sapf_obstacles.simulate_path()
-    sapf_humans.simulate_path()
-
-    # Good seeds
-    #20
-    #537
+    
+    # Multiple test
+    if False:
+        time = []
+        goals = 0
+        crashes = 0
+        fails = 0
+        for t in range(20):
+            print("test:", t)
+            # Obstacles
+            obstacles = []
+            for o in range(9):
+                obstacles.append([(random.random()-0.5)*14, (random.random()-0.5)*14])
+            sapf_humans.obstacles=np.array(obstacles)
+            sapf_obstacles.obstacles=np.array(obstacles)
+            sapf_obstacles.reset()
+            sapf_humans.reset()
+            
+            # Simulate
+            # g,c,t = sapf_humans.simulate_path(debug=False, plot_path=True, plot_pot_field=False, plot_pots=False, plot_state=False)
+            g,c,t = sapf_obstacles.simulate_path(debug=False, plot_path=True, plot_pot_field=False, plot_pots=False, plot_state=False)
+            print(g,c,t)
+            if c:
+                crashes += 1
+            elif g:
+                goals += 1
+                time.append(t)
+            else:
+                fails += 1
+            
+        print("goals:", goals)
+        print("crashes:", crashes)
+        print("fails:", fails)
+        print("time average:", np.average(time))
