@@ -531,13 +531,13 @@ if __name__ == "__main__":
         time_step_size=0.1,
         max_iterations=10000,
         noise_mag=0.001,
-        crash_dist = 0.1
+        crash_dist = 0.1    
     )
 
     # Single test
     if True:
-        result = sapf_obstacles.simulate_path(plot_path=True, plot_more=False)
-        # result = sapf_humans.simulate_path(plot_path=True, plot_more=False)
+        # result = sapf_obstacles.simulate_path(plot_path=True, plot_more=False)
+        result = sapf_humans.simulate_path(plot_path=True, plot_more=True)
         print(result)
      
 
