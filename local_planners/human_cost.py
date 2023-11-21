@@ -13,6 +13,12 @@ class Human_cost:
         
         self.cost_func = None
         
+        self.person_size = 0.3
+        self.intimate = 1.5*0.3 + self.person_size
+        self.personal = 4*0.3 + self.person_size
+        self.social = 10*0.3 + self.person_size
+        
+        
         self.x = np.linspace(-7,7,500)
         self.y = np.linspace(-7,7,500)
         
@@ -40,10 +46,6 @@ class Human_cost:
 
         max = pdf[250,250]
 
-        person_size = 0.3
-        intimate = 1.5*0.3 + person_size
-        personal = 4*0.3 + person_size
-        social = 10*0.3 + person_size
 
 
         for i in range(np.shape(self.x)[0]):
@@ -61,15 +63,15 @@ class Human_cost:
                 
 
                 # Only scale
-                if dist((self.x[i],self.y[j]), (0,0)) < person_size:
+                if dist((self.x[i],self.y[j]), (0,0)) < self.person_size:
                     scaling[j,i] = 1.1
-                elif dist((self.x[i],self.y[j]), (0,0)) < intimate:
+                elif dist((self.x[i],self.y[j]), (0,0)) < self.intimate:
                     scaling[j,i] = 1.0
-                elif dist((self.x[i],self.y[j]), (0,0)) < personal:
+                elif dist((self.x[i],self.y[j]), (0,0)) < self.personal:
                     scaling[j,i] = 0.5
-                elif dist((self.x[i],self.y[j]), (0,0)) < social:
+                elif dist((self.x[i],self.y[j]), (0,0)) < self.social:
                     scaling[j,i] = 0.25
-                elif dist((self.x[i],self.y[j]), (0,0)) >= social:
+                elif dist((self.x[i],self.y[j]), (0,0)) >= self.social:
                     scaling[j,i] = 0.0
                 
                 # skew pdf
@@ -118,25 +120,27 @@ class Human_cost:
                     
 
     def get_cost_xy(self, x, y):
-            # # method to find closest value
+            if sqrt(x**2 + y**2) >= self.personal:
+                return 0
             
+            # # method to find closest value
             #https://stackoverflow.com/questions/2566412/find-nearest-value-in-numpy-array
             
             idx_x = (np.abs(self.x - x)).argmin()
             idx_y = (np.abs(self.y - y)).argmin()
-            
-            print(idx_x, idx_y)
+
             return self.cost_func[idx_x, idx_y]
         
     def get_cost_angledistance(self, angle, distance):        
         #polar coordinates:
+        if distance >= self.personal:
+            return 0
+        
         x = distance*cos(angle)
         y = distance*sin(angle)
         
         return self.get_cost_xy(x, y)
         
-        
-
         
 if __name__ == "__main__":
     cost = Human_cost(mu_x = 0, var_x = 3, mu_y = 0, var_y = 12)

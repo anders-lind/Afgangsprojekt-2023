@@ -16,13 +16,51 @@ from mpl_toolkits.mplot3d.axes3d import get_test_data
 from matplotlib import cm
 from scipy.stats import (multivariate_normal as mvn,
                            norm)
+from human_cost import Human_cost as HC
 from scipy.stats._multivariate import _squeeze_output
-from modules.human_cost import Human_cost as HC
-from modules.math_stuff import *
+from math import *
 
+def euler_from_quaternion(x, y, z, w):
+    
+    """
+    Convert a quaternion into euler angles (roll, pitch, yaw)
+    roll is rotation around x in radians (counterclockwise)
+    pitch is rotation around y in radians (counterclockwise)
+    yaw is rotation around z in radians (counterclockwise)
+    """
+    
+    t0 = +2.0 * (w * x + y * z)
+    t1 = +1.0 - 2.0 * (x * x + y * y)
+    roll_x = atan2(t0, t1)
+    
+    t2 = +2.0 * (w * y - z * x)
+    t2 = +1.0 if t2 > +1.0 else t2
+    t2 = -1.0 if t2 < -1.0 else t2
+    pitch_y = asin(t2)
+    
+    t3 = +2.0 * (w * z + x * y)
+    t4 = +1.0 - 2.0 * (y * y + z * z)
+    yaw_z = atan2(t3, t4)
+    
+    return roll_x, pitch_y, yaw_z # in radians
+    
+    
+def sigmoid(x):
+    return 1/(1 + exp(-x))
+
+
+def dist_homemade(x: list, y: list):
+    if len(x) != len(y):
+        raise Exception
+    dist_sum = 0
+    
+    for i in range(len(x)):
+        dist_sum += (x[i] - y[i])**2
+    
+    return sqrt(dist_sum)
 
 class DWA:
-    def __init__(self, dT = 0.1, simT = 0.5, vPrec = 0.05, wPrec = 0.05, with_people = False):
+    def __init__(self, dT = 0.1, simT = 0.5, vPrec = 0.05, wPrec = 0.05, goal_th = 0.1, with_people = False):
         
         #Making a square map
         
@@ -53,18 +91,17 @@ class DWA:
         if self.with_people == True:
             self.obj_alpha = 0.7  
             self.obj_beta = -0.2  
-            self.obj_gamma = 0.1 
-            self.obj_eta = 0.2
+            self.obj_gamma = 1.0 
+            self.obj_eta = 1.0
+            
+            self.cost = HC()
         
         self.max_iterations= 1000
-        self.goal_th = 0.2
+        self.goal_th = goal_th
                
-        
         self.theta = 0
         self.v = 0
         self.w = 0
-        
-        
         
         self.x = -8
         self.y = -8
@@ -80,7 +117,7 @@ class DWA:
         self.goal_x = (random.random()- 0.5)*self.map_width*0.95 + self.map_x_cent 
         self.goal_y = (random.random()- 0.5)*self.map_width*0.95 + self.map_y_cent
         
-        while dist([self.x, self.y], [self.goal_x, self.goal_y]) < self.map_width*0.7:
+        while dist([self.x, self.y], [self.goal_x, self.goal_y]) < self.map_width*0.9:
             self.x = (random.random()- 0.5)*self.map_width*0.95 + self.map_x_cent
             self.y = (random.random()- 0.5)*self.map_width*0.95 + self.map_y_cent  
             
@@ -112,8 +149,8 @@ class DWA:
         
         #udkommeter dette hvis tilfældige forhindringer IKKE ønskes:
         
-        num_obstacles = 30
-        num_people = 5
+        num_obstacles = 0
+        num_people = 20
         
         self.obstacles.clear()
         for i in range(num_obstacles):
@@ -210,6 +247,7 @@ class DWA:
     
 
     def determine_scores(self, multi_array):
+        self.stop = False
         
         max_score = -10000
         
@@ -234,8 +272,12 @@ class DWA:
                         min_dist = obs_dist
     
                 dist_goal = dist([self.x, self.y], [self.goal_x, self.goal_y]) - dist([x, y], [self.goal_x, self.goal_y])
+                                    
                 if dist_goal > change_in_distance_to_goal:
                     change_in_distance_to_goal = dist_goal
+                    
+                if dist([x, y], [self.goal_x, self.goal_y]) < self.goal_th:
+                        self.stop = True
             
             
             self.distance_score = self.obj_beta*((1/min_dist)**2)
@@ -247,23 +289,16 @@ class DWA:
             human_score = 0
             
             if self.with_people == True:
-                cost = HC()
                 for x,y,theta in poses:                 
                     for i in range(len(self.people)):
                         vec = [x - self.people[i][0][0], y - self.people[i][0][1]]
-                        
-                        price = cost.get_cost_xy(vec[0], vec[1])
+                        price = self.cost.get_cost_xy(vec[0], vec[1])
                         human_score -= price
 
-                        
-                        
             self.human_score = self.obj_eta*( human_score )
             
             score = self.heading_score + self.distance_score + self.velocity_score + self.human_score
 
-
-                        
-                        
             if score > max_score:
                 max_score = score
                 winner_v = v
@@ -324,7 +359,7 @@ class DWA:
         
 
         
-        while i < self.max_iterations and dist([self.x, self.y], [self.goal_x, self.goal_y]) > self.goal_th and self.stop == False:
+        while i < self.max_iterations and self.stop == False:
             i += 1
 
             self.dwa()
@@ -384,7 +419,7 @@ class DWA:
         plt.plot(time, heading_scores, color='b', label='Head Score')
         
         if self.with_people == True:
-            plt.plot(time, human_scores, color='o', label='Human Score')
+            plt.plot(time, human_scores, color='c', label='Human Score')
             
         plt.plot(time, total_score, color ='y', label='Total Score')
         plt.legend()
