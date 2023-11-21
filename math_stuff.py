@@ -2,157 +2,157 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import multivariate_normal
 from mpl_toolkits.mplot3d import Axes3D
-from math import log, dist
-
-#Parameters to set
-mu_x = 0
-variance_x = 3
-
-mu_y = 0
-variance_y = 12
-
-#Create grid and multivariate normal
-x = np.linspace(-7,7,500)
-y = np.linspace(-7,7,500)
-X, Y = np.meshgrid(x,y)
-pos = np.empty(X.shape + (2,))
-pos[:, :, 0] = X; pos[:, :, 1] = Y
-rv = multivariate_normal([mu_x, mu_y], [[variance_x, 0], [0, variance_y]])
-
-pdf = rv.pdf(pos)
-skew = rv.pdf(pos)
-skewpdf = rv.pdf(pos)
-scaling = rv.pdf(pos)
-total = rv.pdf(pos)
+from math import log, dist, sqrt, cos, sin, pi
 
 
-total = np.zeros(np.shape(pdf))
+class Human_cost:
+    def __init__(self, mu_x = 0, var_x = 3, mu_y = 0, var_y = 12):
+        self.mu_x = mu_x
+        self.var_x = var_x
+        self.mu_y = mu_y
+        self.var_y = var_y
+        
+        self.cost_func = None
+        
+        self.x = np.linspace(-7,7,500)
+        self.y = np.linspace(-7,7,500)
+        
+        self.create_graph(visualize=False)
+    
+    
+    
+    def create_graph(self, visualize = True):
+        #Create grid and multivariate normal
+        self.x  = np.linspace(-7,7,500)
+        self.y  = np.linspace(-7,7,500)
+        Y, X = np.meshgrid(self.x , self.y)
+        pos = np.empty(X.shape + (2,))
+        pos[:, :, 0] = X; pos[:, :, 1] = Y
+        rv = multivariate_normal([self.mu_x, self.mu_y], [[self.var_x, 0], [0, self.var_y]])
+
+        pdf = rv.pdf(pos)
+        skew = rv.pdf(pos)
+        skewpdf = rv.pdf(pos)
+        scaling = rv.pdf(pos)
+        
+        self.cost_func = rv.pdf(pos)
+
+        b = 1
+        c = 3
+        a = b/(c**2)
+
+        max = pdf[250,250]
+
+        person_size = 0.3
+        intimate = 1.5*0.3 + person_size
+        personal = 4*0.3 + person_size
+        social = 10*0.3 + person_size
 
 
+        for i in range(np.shape(self.x)[0]):
+            for j in range(np.shape(self.y)[0]):
+                # Unit
+                pdf[j,i] = pdf[j,i] * 1/max
 
+                # only asym
+                if self.y[j] > 0:
+                    skew[j,i] = -a*self.y[j]**2+b
+                if self.y[j] > c:
+                    skew[j,i] = 0
+                elif self.y[j] <= 0:
+                    skew[j,i] = 1
+                
 
-# Old version
-# x1 = 0
-# y1 = 1
-# x2 = 4
-# y2 = 0
+                # Only scale
+                if dist((self.x[i],self.y[j]), (0,0)) < person_size:
+                    scaling[j,i] = 1.1
+                elif dist((self.x[i],self.y[j]), (0,0)) < intimate:
+                    scaling[j,i] = 1.0
+                elif dist((self.x[i],self.y[j]), (0,0)) < personal:
+                    scaling[j,i] = 0.5
+                elif dist((self.x[i],self.y[j]), (0,0)) < social:
+                    scaling[j,i] = 0.25
+                elif dist((self.x[i],self.y[j]), (0,0)) >= social:
+                    scaling[j,i] = 0.0
+                
+                # skew pdf
+                skewpdf[j,i] = pdf[j,i] * skew[j,i]
 
-# b = 1
-# c = 3
-# a = b/(c**2)
+                # Asym skew
+                self.cost_func[j,i] = pdf[j,i] * skew[j,i] * scaling[j,i]
+                
+        if visualize == True:
+            #Make a 3D plot
+            
+            ax1 = plt.figure("Total").add_subplot(projection='3d')
+            plt.title("total")
+            ax1 = plt.axes(projection='3d')
+            ax1.plot_surface(X, Y, self.cost_func,cmap='viridis',linewidth=0)
+            ax1.set_xlabel('X axis')
+            ax1.set_ylabel('Y axis')
+            ax1.set_zlabel('Z axis')
 
-# max = pdf[250,250]
+            ax2 = plt.figure("skew").add_subplot(projection='3d')
+            ax2.plot_surface(X, Y, skew,cmap='viridis',linewidth=0)
+            ax2.set_xlabel('X axis')
+            ax2.set_ylabel('Y axis')
+            ax2.set_zlabel('Z axis')
 
+            ax3 = plt.figure("Scaling").add_subplot(projection='3d')
+            ax3.plot_surface(X, Y, scaling,cmap='viridis',linewidth=0)
+            ax3.set_xlabel('X axis')
+            ax3.set_ylabel('Y axis')
+            ax3.set_zlabel('Z axis')
 
-# for i in range(np.shape(x)[0]):
-#     for j in range(np.shape(y)[0]):
-#         pdf[j,i] = pdf[j,i] * 1/max
+            ax4 = plt.figure("pdf").add_subplot(projection='3d')
+            plt.title("pdf")
+            ax4.plot_surface(X, Y, pdf,cmap='viridis',linewidth=0)
+            ax4.set_xlabel('X axis')
+            ax4.set_ylabel('Y axis')
+            ax4.set_zlabel('Z axis')
 
-#         skewed_pdf[j,i] = pdf[j,i]
-#         if y[j] > 0:
-#             skewed_pdf[j,i] = pdf[j,i]*(-a*y[j]**2+b)
-#         if y[j] > c:
-#             skewed_pdf[j,i] = 0
+            ax5 = plt.figure("skew pdf").add_subplot(projection='3d')
+            ax5.plot_surface(X, Y, skewpdf,cmap='viridis',linewidth=0)
+            ax5.set_xlabel('X axis')
+            ax5.set_ylabel('Y axis')
+            ax5.set_zlabel('Z axis')
 
+            plt.show()
+                    
 
-x1 = 0
-y1 = 1
-x2 = 4
-y2 = 0
-
-b = 1
-c = 3
-a = b/(c**2)
-
-max = pdf[250,250]
-
-person_size = 0.3
-intimate = 1.5*0.3 + person_size
-personal = 4*0.3 + person_size
-social = 10*0.3 + person_size
-
-
-for i in range(np.shape(x)[0]):
-    for j in range(np.shape(y)[0]):
-        # Unit
-        pdf[j,i] = pdf[j,i] * 1/max
-
-        # only asym
-        if y[j] > 0:
-            skew[j,i] = -a*y[j]**2+b
-        if y[j] > c:
-            skew[j,i] = 0
-        elif y[j] <= 0:
-            skew[j,i] = 1
+    def get_cost_xy(self, x, y):
+            # # method to find closest value
+            
+            #https://stackoverflow.com/questions/2566412/find-nearest-value-in-numpy-array
+            
+            idx_x = (np.abs(self.x - x)).argmin()
+            idx_y = (np.abs(self.y - y)).argmin()
+            
+            print(idx_x, idx_y)
+            return self.cost_func[idx_x, idx_y]
+        
+    def get_cost_angledistance(self, angle, distance):        
+        #polar coordinates:
+        x = distance*cos(angle)
+        y = distance*sin(angle)
+        
+        return self.get_cost_xy(x, y)
+        
         
 
-        # Only scale
-        if dist((x[i],y[j]), (0,0)) < person_size:
-            scaling[j,i] = 1.1
-        elif dist((x[i],y[j]), (0,0)) < intimate:
-            scaling[j,i] = 1.0
-        elif dist((x[i],y[j]), (0,0)) < personal:
-            scaling[j,i] = 0.5
-        elif dist((x[i],y[j]), (0,0)) < social:
-            scaling[j,i] = 0.25
-        elif dist((x[i],y[j]), (0,0)) >= social:
-            scaling[j,i] = 0.0
         
-        # skew pdf
-        skewpdf[j,i] = pdf[j,i] * skew[j,i]
-
-        # Asym skew
-        total[j,i] = pdf[j,i] * skew[j,i] * scaling[j,i]
-
-
-# TODO
-# method to find closest value
-# make class we both can import
-x_index = np.where(x == A)[0][0]
-y_index = np.where(y == B)[0][0]
-
-return total[x_index, y_index]
-
-
-
-
-
-#Make a 3D plot
-fig = plt.figure("Total")
-plt.title("total")
-ax1 = plt.axes(projection='3d')
-ax1.plot_surface(X, Y, total,cmap='viridis',linewidth=0)
-ax1.set_xlabel('X axis')
-ax1.set_ylabel('Y axis')
-ax1.set_zlabel('Z axis')
-
-fig = plt.figure("skew")
-ax2 = fig.gca(projection='3d')
-ax2.plot_surface(X, Y, skew,cmap='viridis',linewidth=0)
-ax2.set_xlabel('X axis')
-ax2.set_ylabel('Y axis')
-ax2.set_zlabel('Z axis')
-
-fig = plt.figure("Scaling")
-ax3 = fig.gca(projection='3d')
-ax3.plot_surface(X, Y, scaling,cmap='viridis',linewidth=0)
-ax3.set_xlabel('X axis')
-ax3.set_ylabel('Y axis')
-ax3.set_zlabel('Z axis')
-
-fig = plt.figure("pdf")
-plt.title("pdf")
-ax4 = fig.gca(projection='3d')
-ax4.plot_surface(X, Y, pdf,cmap='viridis',linewidth=0)
-ax4.set_xlabel('X axis')
-ax4.set_ylabel('Y axis')
-ax4.set_zlabel('Z axis')
-
-fig = plt.figure("skew pdf")
-ax5 = fig.gca(projection='3d')
-ax5.plot_surface(X, Y, skewpdf,cmap='viridis',linewidth=0)
-ax5.set_xlabel('X axis')
-ax5.set_ylabel('Y axis')
-ax5.set_zlabel('Z axis')
-
-plt.show()
+if __name__ == "__main__":
+    cost = Human_cost(mu_x = 0, var_x = 3, mu_y = 0, var_y = 12)
+    
+    x = 1  #m
+    y = 1  #m
+    cost_xy = cost.get_cost_xy(x, y)
+    print("The value of the cost-function at (", x, ", ", y, ") is: ", cost_xy)
+    
+    angle = pi/4 #rad
+    distance = sqrt(2) #m
+    cost_angledistance = cost.get_cost_angledistance(angle, distance)
+    print("The value of the cost-function at angle: ", angle, ", distance: ", distance, " is: ", cost_angledistance)
+  
+    
+    cost.create_graph(visualize=True)
