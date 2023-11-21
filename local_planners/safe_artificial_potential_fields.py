@@ -16,15 +16,24 @@ class SAPF:
             goal,
             # obstacles
             obstacles,
+            humans,
             # SAPF parameters
-            d_star,
-            d_safe,
-            d_vort,
-            zeta,
-            eta,
-            Q_star,
-            alpha_th,
-            theta_max_error,
+            d_star_obs,
+            d_safe_obs,
+            d_vort_obs,
+            zeta_obs,
+            eta_obs,
+            Q_star_obs,
+            alpha_th_obs,
+            theta_max_error_obs,
+            d_star_hum,
+            d_safe_hum,
+            d_vort_hum,
+            zeta_hum,
+            eta_hum,
+            Q_star_hum,
+            alpha_th_hum,
+            theta_max_error_hum,
             # robot
             v_max,
             omega_max,
@@ -41,14 +50,24 @@ class SAPF:
         ):
 
         ### SAPF parameters ###
-        self.d_star = d_star
-        self.d_safe = d_safe
-        self.d_vort = d_vort
-        self.zeta = zeta
-        self.eta = eta
-        self.Q_star = Q_star
-        self.alpha_th = alpha_th
-        self.theta_max_error = theta_max_error
+        # obstacle parameters
+        self.d_star_obs = d_star_obs
+        self.d_safe_obs = d_safe_obs
+        self.d_vort_obs = d_vort_obs
+        self.zeta_obs = zeta_obs
+        self.eta_obs = eta_obs
+        self.Q_star_obs = Q_star_obs
+        self.alpha_th_obs = alpha_th_obs
+        self.theta_max_error_obs = theta_max_error_obs
+        # Human parameters
+        self.d_star_hum = d_star_hum
+        self.d_safe_hum = d_safe_hum
+        self.d_vort_hum = d_vort_hum
+        self.zeta_hum = zeta_hum
+        self.eta_hum = eta_hum
+        self.Q_star_hum = Q_star_hum
+        self.alpha_th_hum = alpha_th_hum
+        self.theta_max_error_hum = theta_max_error_hum
 
         ### Robot dynamics ###
         self.v_max = v_max
@@ -78,7 +97,10 @@ class SAPF:
 
         ### Obstacles ###
         self.obstacles = obstacles
+        self.humans = humans
         
+
+
     def reset(self):
         self.pos = self.start
         self.theta = self.start_theta
@@ -86,9 +108,11 @@ class SAPF:
         self.vel = 0.0
 
 
+
     def simulate_path(self, plot_path=False, plot_more=False, debug=False):
         reached_goal = False
         hit_obstacle = False
+        hit_human = False
         
         if plot_path:
             # Init
@@ -109,6 +133,10 @@ class SAPF:
             pot_rep_y = np.zeros(1)
             pot_rep_mag = np.zeros(1)
             tot,att,rep = self.calc_potential_full(pos=self.pos, goal=self.goal)
+            theta_error = np.zeros(1)
+            omega = np.zeros(1)
+            vel_mag = np.zeros(1)
+            tot,att,rep = self.calc_potential_full(pos=self.pos, goal=self.goal)
             # Log
             pot_tot_x[0] = tot[0]
             pot_tot_y[0] = tot[1]
@@ -119,13 +147,6 @@ class SAPF:
             pot_rep_x[0] = rep[0]
             pot_rep_y[0] = rep[1]
             pot_rep_mag = norm(rep)
-        if plot_more:
-            # init
-            theta_error = np.zeros(1)
-            omega = np.zeros(1)
-            vel_mag = np.zeros(1)
-            tot,att,rep = self.calc_potential_full(pos=self.pos, goal=self.goal,debug=True)
-            # log
             v_ref, theta_ref = self.calc_ref_values(tot)
             theta_error[0] = atan2(sin(theta_ref - self.theta), cos(theta_ref - self.theta))
             omega[0] = self.omega
@@ -143,7 +164,7 @@ class SAPF:
             # Calculate potentials and move robot
             pot = self.calc_potential(pos=self.pos, goal=self.goal)
             v_ref, theta_ref = self.calc_ref_values(pot)
-            self.simulate_robot(v_ref=v_ref, theta_ref=theta_ref)
+            self.simulate_robot_step(v_ref=v_ref, theta_ref=theta_ref)
 
             # Log position:
             if plot_path:
@@ -168,12 +189,18 @@ class SAPF:
 
 
             # If hit obstacle
-            for o in range(len(obstacles)):
-                if norm(obstacles[o] - self.pos) < self.crash_dist:
+            for o in range(len(self.obstacles)):
+                if norm(self.obstacles[o] - self.pos) < self.crash_dist:
                     hit_obstacle = True
                     if debug:
                         print("Hit obstacle!")
-
+            
+            # If hit human
+            for h in range(len(self.humans)):
+                if norm(self.humans[o][0] - self.pos) < self.crash_dist:
+                    hit_human = True
+                    if debug:
+                        print("Hit human!")
 
             # If at goal
             if norm(self.goal - self.pos) < self.goal_th:
@@ -187,29 +214,60 @@ class SAPF:
         time_axis = np.linspace(start=0, stop=i*self.time_step_size, num=i+1)
 
 
-        ### Draw obstacles ###
         if plot_path:
             figure, axes = plt.subplots()
+
+            ### Plot path ###
+            plt.title("Path")
+            plt.plot(x,y, 'r')
+            plt.grid()
+            axes.set_aspect(1)
+            plt.xlabel("x [m]")
+            plt.ylabel("y [m]")
+            # # Plot settings
+            # if lim_start[0] < lim_stop[0]:
+            #     plt.xlim(lim_start[0], lim_stop[0])
+            # else:
+            #     plt.xlim(lim_stop[0], lim_start[0])
+            # if lim_start[1] < lim_stop[1]:
+            #     plt.ylim(lim_start[1], lim_stop[1])
+            # else:
+            #     plt.ylim(lim_stop[1], lim_start[1])
+
+            ### Draw obstacles ###
             for o in range(len(self.obstacles)):    
                 obs_x = self.obstacles[o][0]
                 obs_y = self.obstacles[o][1]
-                drawing_obs = plt.Circle( (obs_x, obs_y), self.crash_dist, fill = True, color=(0,0,0) )
-                drawing_d_safe = plt.Circle( (obs_x, obs_y), self.d_safe, fill = False )
-                drawing_d_vort = plt.Circle( (obs_x, obs_y), self.d_vort, fill = False )
-                drawing_Q_star = plt.Circle( (obs_x, obs_y), self.Q_star, fill = False )
+                drawing_obs = plt.Circle( (obs_x, obs_y), self.crash_dist, fill = True, color=(1,0,1) )
+                drawing_d_safe_obs = plt.Circle( (obs_x, obs_y), self.d_safe_obs, fill = False, color=(1,0,1) )
+                drawing_d_vort_obs = plt.Circle( (obs_x, obs_y), self.d_vort_obs, fill = False, color=(1,0,1) )
+                drawing_Q_star_obs = plt.Circle( (obs_x, obs_y), self.Q_star_obs, fill = False, color=(1,0,1) )
                 axes.add_artist(drawing_obs)
-                axes.add_artist(drawing_d_safe)
-                axes.add_artist(drawing_d_vort)
-                axes.add_artist(drawing_Q_star)
+                axes.add_artist(drawing_d_safe_obs)
+                axes.add_artist(drawing_d_vort_obs)
+                axes.add_artist(drawing_Q_star_obs)
+        
+            ### Draw humans ###
+            for h in range(len(self.humans)):    
+                hum_x = self.humans[h][0][0]
+                hum_y = self.humans[h][0][1]
+                drawing_hum = plt.Circle( (hum_x, hum_y), self.crash_dist, fill = True, color=(1,0.5,0) )
+                drawing_d_safe_hum = plt.Circle( (hum_x, hum_y), self.d_safe_hum, fill = False, color=(1,0.5,0) )
+                drawing_d_vort_hum = plt.Circle( (hum_x, hum_y), self.d_vort_hum, fill = False, color=(1,0.5,0) )
+                drawing_Q_star_hum = plt.Circle( (hum_x, hum_y), self.Q_star_hum, fill = False, color=(1,0.5,0) )
+                axes.add_artist(drawing_hum)
+                axes.add_artist(drawing_d_safe_hum)
+                axes.add_artist(drawing_d_vort_hum)
+                axes.add_artist(drawing_Q_star_hum)
 
         
-        ### Draw goal ###
-        if plot_path:
+            ### Draw goal ###
             drawing_goal = plt.Circle( (self.goal[0], self.goal[1]), self.goal_th, fill = True, color=(0,1,0))
             axes.add_artist(drawing_goal)
         
 
         ### Draw potential field ###
+        # TODO: Make dynaimc with changes in plot viewer
         if plot_more:
             # Size limits
             lim_start = self.start
@@ -238,30 +296,8 @@ class SAPF:
             # Apply arrows
             plt.quiver(x_field, y_field, field_potential_x, field_potential_y, scale=5, scale_units="inches", minshaft=2, headlength=5)
         
-        ### Plot path ###
-        if plot_path:
-            plt.title("Path")
-            plt.plot(x,y, 'r')
-            plt.grid()
-            axes.set_aspect(1)
-            plt.xlabel("x [m]")
-            plt.ylabel("y [m]")
-            # # Plot settings
-            # if lim_start[0] < lim_stop[0]:
-            #     plt.xlim(lim_start[0], lim_stop[0])
-            # else:
-            #     plt.xlim(lim_stop[0], lim_start[0])
-            # if lim_start[1] < lim_stop[1]:
-            #     plt.ylim(lim_start[1], lim_stop[1])
-            # else:
-            #     plt.ylim(lim_stop[1], lim_start[1])
-            
-        
-        
 
-
-        # Plot potentials
-        if plot_more:
+            # Plot potentials
             fig = plt.figure()
             plt.title("Potentials")
             plt.xlabel("time [s]")
@@ -272,10 +308,7 @@ class SAPF:
             plt.legend()
             plt.grid()
         
-
-
-        # Plot robot state
-        if plot_more:
+            # Plot robot state
             fig = plt.figure()
             plt.title("Robot state")
             plt.xlabel("time [s]")
@@ -285,8 +318,7 @@ class SAPF:
             plt.legend()
             plt.grid()
         
-        # Plot position
-        if plot_more:
+            # Plot position
             fig = plt.figure()
             plt.title("Robot position")
             plt.plot(time_axis, x, label="x")
@@ -295,17 +327,16 @@ class SAPF:
             plt.grid()
         
 
-        
         # Show plots
-        if plot_path:
+        if plot_path or plot_more:
             plt.show()
 
-        return reached_goal, hit_obstacle, i*self.time_step_size
+
+        return reached_goal, hit_obstacle, hit_human, i*self.time_step_size
 
 
 
-
-    def simulate_robot(self, v_ref: float, theta_ref: float):
+    def simulate_robot_step(self, v_ref: float, theta_ref: float):
         # Calculate rotational acceleration
         # Calculate rotational speed
         # Calculate rotation
@@ -362,11 +393,10 @@ class SAPF:
         theta_error = theta_ref - self.theta
         theta_error = atan2(sin(theta_error), cos(theta_error)) # wrap [-pi, pi]
 
-        if abs(theta_error) < self.theta_max_error:
-            v_ref = min(norm(potential)*(self.theta_max_error - theta_error) / (self.theta_max_error), self.v_max)
+        if abs(theta_error) < self.theta_max_error_obs:
+            v_ref = min(norm(potential)*(self.theta_max_error_obs - theta_error) / (self.theta_max_error_obs), self.v_max)
         else:
             v_ref = 0
-
 
         return v_ref, theta_ref
 
@@ -378,7 +408,7 @@ class SAPF:
 
     def calc_potential_full(self, pos, goal, debug=False):
         # Calculate attractive potential
-        # For every obstacle
+        # For every obstacle and human
         #   Calculate repulsive potential
         #   Calculate values used for vortex
         #   Rotate repulsive potentiel according to vortex
@@ -387,39 +417,43 @@ class SAPF:
         
         nablaU_att = np.zeros(2)
         nablaU_rep = np.zeros(2)
+        nablaU_rep_obs = np.zeros(2)
+        nablaU_rep_hum = np.zeros(2)
+
 
         # Calculate attractive potential
-        if dist(pos, goal) < self.d_star:
-            nablaU_att = self.zeta * (goal - pos)
+        if dist(pos, goal) < self.d_star_obs:
+            nablaU_att = self.zeta_obs * (goal - pos)
         else:
-            nablaU_att = self.d_star * self.zeta * ((goal - pos) / norm(goal - pos))
+            nablaU_att = self.d_star_obs * self.zeta_obs * ((goal - pos) / norm(goal - pos))
+
 
         # For every obstacle
         for i in range(len(self.obstacles)):
             d_O_i = dist(pos, self.obstacles[i])
 
             # Calculate repulsive potential for each object
-            if (d_O_i < self.Q_star):
-                nablaU_repObj_i = self.eta * (1/d_O_i - 1/self.Q_star) * (1.0 / (pow(d_O_i,2))) * (pos - self.obstacles[i])
+            if (d_O_i < self.Q_star_obs):
+                nablaU_repObs_i = self.eta_obs * (1/d_O_i - 1/self.Q_star_obs) * (1.0 / (pow(d_O_i,2))) * (pos - self.obstacles[i])
             else:
-                nablaU_repObj_i = np.zeros(2)
+                nablaU_repObs_i = np.zeros(2)
 
             # Calculate values used for vortex
             # alpha = self.theta - atan2(self.obstacles[i][1] - pos[1],self.obstacles[i][0] - pos[0])
             alpha = self.theta - atan2(pos[1] - self.obstacles[i][1],pos[0] - self.obstacles[i][0])
             alpha = atan2(sin(alpha), cos(alpha))
             
-            if alpha <= self.alpha_th:
+            if alpha <= self.alpha_th_obs:
                 D_alpha = +1
             else:
                 D_alpha = -1
             
-            if d_O_i < self.d_safe:
+            if d_O_i < self.d_safe_obs:
                 d_rel_O_i = 0
-            elif d_O_i > 2*self.d_vort - self.d_safe:
+            elif d_O_i > 2*self.d_vort_obs - self.d_safe_obs:
                 d_rel_O_i = 1
             else:
-                d_rel_O_i = (d_O_i - self.d_safe)/(2*(self.d_vort - self.d_safe))
+                d_rel_O_i = (d_O_i - self.d_safe_obs)/(2*(self.d_vort_obs - self.d_safe_obs))
 
             if d_rel_O_i <= 0.5:
                 gamma = pi*D_alpha*d_rel_O_i
@@ -430,15 +464,60 @@ class SAPF:
                 [cos(gamma), -sin(gamma)],
                 [sin(gamma), cos(gamma)] 
             ])
-            nablaU_repObj_i = np.matmul(nablaU_repObj_i, R_gamma)            
+            nablaU_repObs_i = np.matmul(nablaU_repObs_i, R_gamma)            
 
 
-        #   Add repulsive potential to total repulsive potential
-            nablaU_rep += nablaU_repObj_i
-        # nablaU_rep = np.zeros(2)
+            # Add repulsive potential to total repulsive potential
+            nablaU_rep_obs += nablaU_repObs_i
+        
+
+        # For every human
+        for i in range(len(self.humans)):
+            d_O_i = dist(pos, self.humans[i][0])
+
+            # Calculate repulsive potential for each human
+            # Using potential fields
+            if (d_O_i < self.Q_star_hum):
+                nablaU_repHum_i = self.eta_hum * (1/d_O_i - 1/self.Q_star_hum) * (1.0 / (pow(d_O_i,2))) * (pos - self.humans[i][0])
+            else:
+                nablaU_repHum_i = np.zeros(2)
+            # Using homemade function
+            # TODO
+
+            # Calculate values used for vortex
+            alpha = self.theta - atan2(pos[1] - self.humans[i][0][1],pos[0] - self.humans[i][0][0])
+            alpha = atan2(sin(alpha), cos(alpha))
+            
+            if alpha <= self.alpha_th_hum:
+                D_alpha = +1
+            else:
+                D_alpha = -1
+            
+            if d_O_i < self.d_safe_hum:
+                d_rel_O_i = 0
+            elif d_O_i > 2*self.d_vort_hum - self.d_safe_hum:
+                d_rel_O_i = 1
+            else:
+                d_rel_O_i = (d_O_i - self.d_safe_hum)/(2*(self.d_vort_hum - self.d_safe_hum))
+
+            if d_rel_O_i <= 0.5:
+                gamma = pi*D_alpha*d_rel_O_i
+            else:
+                gamma = pi*D_alpha*(1-d_rel_O_i)
+
+            R_gamma = np.array([
+                [cos(gamma), -sin(gamma)],
+                [sin(gamma), cos(gamma)] 
+            ])
+            nablaU_repHum_i = np.matmul(nablaU_repHum_i, R_gamma)            
+
+
+            # Add repulsive potential to total repulsive potential
+            nablaU_rep_hum += nablaU_repHum_i
+
 
         # Calculate full potential as sum of attractive and all repulsive
-        nabla_U = nablaU_att + nablaU_rep
+        nabla_U = nablaU_att + nablaU_rep_obs + nablaU_rep_hum
 
         if debug: print("nablaU_att:", nablaU_att)
         if debug: print("nablaU_rep:", nablaU_rep)
@@ -446,10 +525,8 @@ class SAPF:
         return nabla_U, nablaU_att, nablaU_rep
 
 
+
 # def create_potential_field():
-
-
-
 
 
 
@@ -458,7 +535,9 @@ if __name__ == "__main__":
     #20
     #537
     #492525103  
+    #36821076
     seed = random.randrange(1000000000)
+    random.seed(seed)
     print("seed:", seed)
     
     # Start, goal and obstacles
@@ -468,18 +547,33 @@ if __name__ == "__main__":
     obstacles = []
     for i in range(9):
         obstacles.append([(random.random()-0.5)*14, (random.random()-0.5)*14])
+
+    humans = []
+    for i in range(9):
+        humans.append([[(random.random()-0.5)*14, (random.random()-0.5)*14], [random.random()-0.5, random.random()-0.5]])
+        humans[i][1][0] = humans[i][1][0] / sqrt(humans[i][1][0]**2 + humans[i][1][1]**2)
+        humans[i][1][1] = humans[i][1][1] / sqrt(humans[i][1][0]**2 + humans[i][1][1]**2)
     
 
-    sapf_obstacles = SAPF(
-        # SAPF parameters
-        d_star=0.3,
-        Q_star=1.0,
-        d_safe=0.2,
-        d_vort=0.35,
-        zeta=2.1547,
-        eta=0.732,
-        alpha_th=radians(5),
-        theta_max_error=radians(135),
+    sapf_obstacles = SAPF (
+        # SAPF obstacle parameters
+        d_star_obs=0.3,
+        Q_star_obs=1.0,
+        d_safe_obs=0.2,
+        d_vort_obs=0.35,
+        zeta_obs=2.1547,
+        eta_obs=0.732,
+        alpha_th_obs=radians(5),
+        theta_max_error_obs=radians(135),
+        # SAPF human parameters
+        d_star_hum=2.0,
+        Q_star_hum=5.0,
+        d_safe_hum=0.2,
+        d_vort_hum=2.0,
+        zeta_hum=0.3,
+        eta_hum=3.8,
+        alpha_th_hum=radians(5),
+        theta_max_error_hum=radians(135),
         # Robot limits
         v_max=2.5,
         lin_a_max=2.0,
@@ -492,6 +586,8 @@ if __name__ == "__main__":
         goal=np.array(goal),
         # Obstacles
         obstacles=np.array(obstacles),
+        # Humans
+        humans=np.array(humans),
         # Simulation
         goal_th=0.2,
         Kp_lin_a=0.2,
@@ -502,44 +598,45 @@ if __name__ == "__main__":
         crash_dist = 0.1
     )
 
-    sapf_humans = SAPF(
-        # SAPF parameters
-        d_star=2.0,
-        Q_star=5.0,
-        d_safe=0.2,
-        d_vort=2.0,
-        zeta=0.3,
-        eta=3.8,
-        alpha_th=radians(5),
-        theta_max_error=radians(135),
-        # Robot limits
-        v_max=1.5,
-        lin_a_max=2.0,
-        omega_max=2.0,
-        rot_a_max=2.0,
-        # Start
-        start_pos=np.array(start),
-        start_theta=start_theta,
-        # Goal
-        goal=np.array(goal),
-        # Obstacles
-        obstacles=np.array(obstacles),
-        # Simulation
-        goal_th=0.2,
-        Kp_lin_a=0.2,
-        Kp_omega=0.6,
-        time_step_size=0.1,
-        max_iterations=10000,
-        noise_mag=0.001,
-        crash_dist = 0.1    
-    )
+    # sapf_humans = SAPF(
+    #     # SAPF parameters
+    #     d_star_obs=2.0,
+    #     Q_star_obs=5.0,
+    #     d_safe_obs=0.2,
+    #     d_vort_obs=2.0,
+    #     zeta_obs=0.3,
+    #     eta_obs=3.8,
+    #     alpha_th_obs=radians(5),
+    #     theta_max_error_obs=radians(135),
+    #     # Robot limits
+    #     v_max=1.5,
+    #     lin_a_max=2.0,
+    #     omega_max=2.0,
+    #     rot_a_max=2.0,
+    #     # Start
+    #     start_pos=np.array(start),
+    #     start_theta=start_theta,
+    #     # Goal
+    #     goal=np.array(goal),
+    #     # Obstacles
+    #     obstacles=np.array(obstacles),
+    #     # Simulation
+    #     goal_th=0.2,
+    #     Kp_lin_a=0.2,
+    #     Kp_omega=0.6,
+    #     time_step_size=0.1,
+    #     max_iterations=10000,
+    #     noise_mag=0.001,
+    #     crash_dist = 0.1    
+    # )
+
 
     # Single test
     if True:
-        # result = sapf_obstacles.simulate_path(plot_path=True, plot_more=False)
-        result = sapf_humans.simulate_path(plot_path=True, plot_more=True)
+        result = sapf_obstacles.simulate_path(plot_path=True, plot_more=True)
+        # result = sapf_humans.simulate_path(plot_path=True, plot_more=True)
         print(result)
-     
+        pass
 
     
     # Multiple test
@@ -561,9 +658,9 @@ if __name__ == "__main__":
             
             # Simulate
             # g,c,t = sapf_humans.simulate_path(debug=False, plot_path=True, plot_pot_field=False, plot_pots=False, plot_state=False)
-            g,c,t = sapf_obstacles.simulate_path(debug=False, plot_path=True, plot_pot_field=False, plot_pots=False, plot_state=False)
-            print(g,c,t)
-            if c:
+            g,o,h,t = sapf_obstacles.simulate_path(debug=False, plot_path=True, plot_pot_field=False, plot_pots=False, plot_state=False)
+            print(g,o,h,t)
+            if o or h:
                 crashes += 1
             elif g:
                 goals += 1
