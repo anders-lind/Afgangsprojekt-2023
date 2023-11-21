@@ -14,48 +14,11 @@ import matplotlib.pyplot as plt
 import random
 from mpl_toolkits.mplot3d.axes3d import get_test_data
 from matplotlib import cm
-from   scipy.stats import (multivariate_normal as mvn,
+from scipy.stats import (multivariate_normal as mvn,
                            norm)
-from   scipy.stats._multivariate import _squeeze_output
-
-
-def euler_from_quaternion(x, y, z, w):
-    
-    """
-    Convert a quaternion into euler angles (roll, pitch, yaw)
-    roll is rotation around x in radians (counterclockwise)
-    pitch is rotation around y in radians (counterclockwise)
-    yaw is rotation around z in radians (counterclockwise)
-    """
-    
-    t0 = +2.0 * (w * x + y * z)
-    t1 = +1.0 - 2.0 * (x * x + y * y)
-    roll_x = atan2(t0, t1)
-    
-    t2 = +2.0 * (w * y - z * x)
-    t2 = +1.0 if t2 > +1.0 else t2
-    t2 = -1.0 if t2 < -1.0 else t2
-    pitch_y = asin(t2)
-    
-    t3 = +2.0 * (w * z + x * y)
-    t4 = +1.0 - 2.0 * (y * y + z * z)
-    yaw_z = atan2(t3, t4)
-    
-    return roll_x, pitch_y, yaw_z # in radians
-    
-    
-def sigmoid(x):
-    return 1/(1 + exp(-x))
-
-def dist(x: list, y: list):
-    if len(x) != len(y):
-        raise Exception
-    dist_sum = 0
-    
-    for i in range(len(x)):
-        dist_sum += (x[i] - y[i])**2
-    
-    return sqrt(dist_sum)
+from scipy.stats._multivariate import _squeeze_output
+from modules.human_cost import Human_cost as HC
+from modules.math_stuff import *
 
 
 class DWA:
@@ -80,6 +43,7 @@ class DWA:
         self.heading_score = 0
         self.distance_score = 0
         self.velocity_score = 0
+        self.human_score = 0
         
         self.obj_alpha = 0.7  # 0.8   (values with old heading score)
         self.obj_beta = -0.2   #-0.04
@@ -91,11 +55,6 @@ class DWA:
             self.obj_beta = -0.2  
             self.obj_gamma = 0.1 
             self.obj_eta = 0.2
-            
-            self.heading_score = 0
-            self.distance_score = 0
-            self.velocity_score = 0
-            self.people_score = 0
         
         self.max_iterations= 1000
         self.goal_th = 0.2
@@ -264,13 +223,7 @@ class DWA:
             poses = multi_array[(v, w)]["Poses"]
             
             score = 0
-            
-            #Determine heading score
-            
-            #self.heading_score = self.obj_alpha*(1/(sqrt((self.goal_x - poses[-1][0])**2 + (self.goal_y - poses[-1][1])**2)))
-            #self.heading_score = self.obj_alpha*(1/((self.goal_x - poses[-1][0]) + (self.goal_y - poses[-1][1])))
-            
-            #Determine distance score            
+                       
             min_dist = 100000
             change_in_distance_to_goal = - 100000
             
@@ -289,25 +242,26 @@ class DWA:
             
             self.heading_score = self.obj_alpha*(dist_goal)
             
-            #Determine velocity score
             self.velocity_score = self.obj_gamma*v
-            
-            # Sum the scores           
-            score = self.heading_score + self.distance_score + self.velocity_score
 
+            human_score = 0
+            
             if self.with_people == True:
-                
+                cost = HC()
                 for x,y,theta in poses:                 
                     for i in range(len(self.people)):
+                        vec = [x - self.people[i][0][0], y - self.people[i][0][1]]
                         
-                        # theta = cos⁻1( (a dot b) / (|a|*|b|) )
-                        angle_to_person = acos((x*self.people[i][0][0] + y*self.people[i][0][1])/ (sqrt(x**2 + y**2)*sqrt(self.people[i][0][0]**2 + self.people[i][0][1]**2)))
-    
-                        angle_person = atan2(self.people[i][1][1], self.people[i][1][0])
-                        angle_dif = abs(angle_person - angle_to_person)
+                        price = cost.get_cost_xy(vec[0], vec[1])
+                        human_score -= price
+
                         
-                        ## DOOOO STUUUFFF HEREEEE
                         
+            self.human_score = self.obj_eta*( human_score )
+            
+            score = self.heading_score + self.distance_score + self.velocity_score + self.human_score
+
+
                         
                         
             if score > max_score:
@@ -366,7 +320,7 @@ class DWA:
         distance_scores = [0]
         total_score =[0]
         
-        people_scores = [0]
+        human_scores = [0]
         
 
         
@@ -388,7 +342,7 @@ class DWA:
             velocity_scores.append(self.velocity_score)
             distance_scores.append(self.distance_score)     
             if self.with_people == True:
-                people_scores.append(self.people_score)
+                human_scores.append(self.human_score)
             
             total_score.append(self.heading_score + self.velocity_score + self.distance_score)       
             
@@ -428,6 +382,10 @@ class DWA:
         plt.plot(time, velocity_scores, color='g', label='Vel Score')
         plt.plot(time, distance_scores, color='r', label='Dist Score')
         plt.plot(time, heading_scores, color='b', label='Head Score')
+        
+        if self.with_people == True:
+            plt.plot(time, human_scores, color='o', label='Human Score')
+            
         plt.plot(time, total_score, color ='y', label='Total Score')
         plt.legend()
         plt.title("Scores")
