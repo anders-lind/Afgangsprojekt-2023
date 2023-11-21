@@ -2,8 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import multivariate_normal
 from mpl_toolkits.mplot3d import Axes3D
-from math import log, dist, sqrt, cos, sin, pi
-
+from math import *
 
 class Human_cost:
     def __init__(self, mu_x = 0, var_x = 3, mu_y = 0, var_y = 12):
@@ -18,8 +17,6 @@ class Human_cost:
         self.y = np.linspace(-7,7,500)
         
         self.create_graph(visualize=False)
-    
-    
     
     def create_graph(self, visualize = True):
         #Create grid and multivariate normal
