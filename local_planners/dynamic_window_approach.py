@@ -307,7 +307,9 @@ class DWA:
                         angle_dif = abs(angle_person - angle_to_person)
                         
                         ## DOOOO STUUUFFF HEREEEE
-            
+                        
+                        
+                        
             if score > max_score:
                 max_score = score
                 winner_v = v
