@@ -6,6 +6,8 @@ import numpy as np
 from numpy.linalg import norm
 import random
 import matplotlib.pyplot as plt
+from human_cost import Human_cost as hc
+
 
 class SAPF:
     def __init__(self,
@@ -19,6 +21,7 @@ class SAPF:
             humans,
             human_size,
             human_point_is_middle,
+            use_human_cost,
             # SAPF parameters
             d_star_obs,
             d_safe_obs,
@@ -71,9 +74,10 @@ class SAPF:
         self.Q_star_hum = Q_star_hum
         self.alpha_th_hum = alpha_th_hum
         self.theta_max_error_hum = theta_max_error_hum
-
         self.human_size = human_size
         self.human_point_is_middle = human_point_is_middle
+        self.hc = hc()
+        self.use_human_cost = use_human_cost
 
         ### Robot dynamics ###
         self.robot_size = robot_size
@@ -498,8 +502,12 @@ class SAPF:
                 nablaU_rep_hum_i = self.eta_hum * (1/d_O_i - 1/self.Q_star_hum) * (1.0 / (pow(d_O_i,2))) * (pos - self.humans[i][0])
             else:
                 nablaU_rep_hum_i = np.zeros(2)
+            
             # Using homemade function
-            # TODO
+            if self.use_human_cost:
+                human_relative_pos = self.pos - self.humans[i][0]
+                nablaU_rep_hum_i = np.array(self.hc.get_cost_xy(x=human_relative_pos[0], y=human_relative_pos[1]))
+                nablaU_rep_hum_i = nablaU_rep_hum_i * (self.pos - self.humans[i][0])/norm(self.pos - self.humans[i][0])
 
             # Calculate values used for vortex
             alpha = self.theta - atan2(pos[1] - self.humans[i][0][1],pos[0] - self.humans[i][0][0])
@@ -574,7 +582,7 @@ if __name__ == "__main__":
         humans[i][1][1] = humans[i][1][1] / scale
         
 
-    sapf_obstacles = SAPF (
+    sapf = SAPF (
         # SAPF obstacle parameters
         d_star_obs=0.3,
         Q_star_obs=1.0,
@@ -610,6 +618,7 @@ if __name__ == "__main__":
         humans=np.array(humans),
         human_size=0.3,
         human_point_is_middle=True,
+        use_human_cost = True,
         # Simulation
         goal_th=0.2,
         Kp_lin_a=0.2,
@@ -622,8 +631,13 @@ if __name__ == "__main__":
 
     # Single test
     if True:
-        result = sapf_obstacles.simulate_path(plot_path=True, plot_more=False, debug=True)
-        # result = sapf_humans.simulate_path(plot_path=True, plot_more=True)
+        result = sapf.simulate_path(plot_path=True, plot_more=False, debug=True)
+        print(result)
+
+        sapf.use_human_cost = False
+        sapf.reset()
+
+        result = sapf.simulate_path(plot_path=True, plot_more=False, debug=True)
         print(result)
         pass
 
@@ -641,13 +655,13 @@ if __name__ == "__main__":
             for o in range(9):
                 obstacles.append([(random.random()-0.5)*14, (random.random()-0.5)*14])
             sapf_humans.obstacles=np.array(obstacles)
-            sapf_obstacles.obstacles=np.array(obstacles)
-            sapf_obstacles.reset()
+            sapf.obstacles=np.array(obstacles)
+            sapf.reset()
             sapf_humans.reset()
             
             # Simulate
             # g,c,t = sapf_humans.simulate_path(debug=False, plot_path=True, plot_pot_field=False, plot_pots=False, plot_state=False)
-            g,o,h,t = sapf_obstacles.simulate_path(debug=False, plot_path=True, plot_pot_field=False, plot_pots=False, plot_state=False)
+            g,o,h,t = sapf.simulate_path(debug=False, plot_path=True, plot_pot_field=False, plot_pots=False, plot_state=False)
             print(g,o,h,t)
             if o or h:
                 crashes += 1
