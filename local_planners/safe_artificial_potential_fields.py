@@ -6,6 +6,8 @@ import numpy as np
 from numpy.linalg import norm
 import random
 import matplotlib.pyplot as plt
+from human_cost import Human_cost as hc
+
 
 class SAPF:
     def __init__(self,
@@ -17,6 +19,9 @@ class SAPF:
             # obstacles
             obstacles,
             humans,
+            human_size,
+            human_point_is_middle,
+            use_human_cost,
             # SAPF parameters
             d_star_obs,
             d_safe_obs,
@@ -35,6 +40,7 @@ class SAPF:
             alpha_th_hum,
             theta_max_error_hum,
             # robot
+            robot_size,
             v_max,
             omega_max,
             lin_a_max,
@@ -68,8 +74,13 @@ class SAPF:
         self.Q_star_hum = Q_star_hum
         self.alpha_th_hum = alpha_th_hum
         self.theta_max_error_hum = theta_max_error_hum
+        self.human_size = human_size
+        self.human_point_is_middle = human_point_is_middle
+        self.hc = hc()
+        self.use_human_cost = use_human_cost
 
         ### Robot dynamics ###
+        self.robot_size = robot_size
         self.v_max = v_max
         self.omega_max = omega_max
         self.lin_a_max = lin_a_max
@@ -162,7 +173,7 @@ class SAPF:
             i += 1
             
             # Calculate potentials and move robot
-            pot = self.calc_potential(pos=self.pos, goal=self.goal)
+            pot = self.calc_potential(pos=self.pos, goal=self.goal, robot_size=self.robot_size)
             v_ref, theta_ref = self.calc_ref_values(pot)
             self.simulate_robot_step(v_ref=v_ref, theta_ref=theta_ref)
 
@@ -190,14 +201,14 @@ class SAPF:
 
             # If hit obstacle
             for o in range(len(self.obstacles)):
-                if norm(self.obstacles[o] - self.pos) < self.crash_dist:
+                if norm(self.obstacles[o] - self.pos) < self.crash_dist + self.robot_size:
                     hit_obstacle = True
                     if debug:
-                        print("Hit obstacle!")
+                        print("Hit obstacle:", self.pos)
             
             # If hit human
             for h in range(len(self.humans)):
-                if norm(self.humans[o][0] - self.pos) < self.crash_dist:
+                if norm(self.humans[h][0] - self.pos) < self.crash_dist + self.robot_size:
                     hit_human = True
                     if debug:
                         print("Hit human!")
@@ -243,22 +254,27 @@ class SAPF:
                 drawing_d_vort_obs = plt.Circle( (obs_x, obs_y), self.d_vort_obs, fill = False, color=(1,0,1) )
                 drawing_Q_star_obs = plt.Circle( (obs_x, obs_y), self.Q_star_obs, fill = False, color=(1,0,1) )
                 axes.add_artist(drawing_obs)
-                axes.add_artist(drawing_d_safe_obs)
-                axes.add_artist(drawing_d_vort_obs)
-                axes.add_artist(drawing_Q_star_obs)
+                if plot_more:
+                    axes.add_artist(drawing_d_safe_obs)
+                    axes.add_artist(drawing_d_vort_obs)
+                    axes.add_artist(drawing_Q_star_obs)
         
             ### Draw humans ###
             for h in range(len(self.humans)):    
                 hum_x = self.humans[h][0][0]
                 hum_y = self.humans[h][0][1]
-                drawing_hum = plt.Circle( (hum_x, hum_y), self.crash_dist, fill = True, color=(1,0.5,0) )
+                drawing_hum = plt.Circle( (hum_x, hum_y), self.human_size, fill = True, color=(1,0.5,0) )
                 drawing_d_safe_hum = plt.Circle( (hum_x, hum_y), self.d_safe_hum, fill = False, color=(1,0.5,0) )
                 drawing_d_vort_hum = plt.Circle( (hum_x, hum_y), self.d_vort_hum, fill = False, color=(1,0.5,0) )
                 drawing_Q_star_hum = plt.Circle( (hum_x, hum_y), self.Q_star_hum, fill = False, color=(1,0.5,0) )
                 axes.add_artist(drawing_hum)
-                axes.add_artist(drawing_d_safe_hum)
-                axes.add_artist(drawing_d_vort_hum)
-                axes.add_artist(drawing_Q_star_hum)
+                plt.quiver(self.humans[h][0][0], self.humans[h][0][1], self.humans[h][1][0], self.humans[h][1][1], scale=4, scale_units="inches")
+                if plot_more:
+                    axes.add_artist(drawing_d_safe_hum)
+                    axes.add_artist(drawing_d_vort_hum)
+                    axes.add_artist(drawing_Q_star_hum)
+                
+            
 
         
             ### Draw goal ###
@@ -402,11 +418,11 @@ class SAPF:
 
 
 
-    def calc_potential(self, pos, goal, debug=False):
-        t,a,r = self.calc_potential_full(pos, goal, debug)
+    def calc_potential(self, pos, goal, robot_size=0, debug=False):
+        t,a,r = self.calc_potential_full(pos=pos, goal=goal, robot_size=robot_size, debug=debug)
         return t
 
-    def calc_potential_full(self, pos, goal, debug=False):
+    def calc_potential_full(self, pos, goal, robot_size=0, debug=False):
         # Calculate attractive potential
         # For every obstacle and human
         #   Calculate repulsive potential
@@ -430,7 +446,8 @@ class SAPF:
 
         # For every obstacle
         for i in range(len(self.obstacles)):
-            d_O_i = dist(pos, self.obstacles[i])
+            d_O_i = dist(pos, self.obstacles[i]) - robot_size
+            if d_O_i <= 0: d_O_i = 0.0000001
 
             # Calculate repulsive potential for each object
             if (d_O_i < self.Q_star_obs):
@@ -473,16 +490,24 @@ class SAPF:
 
         # For every human
         for i in range(len(self.humans)):
-            d_O_i = dist(pos, self.humans[i][0])
+            if self.human_point_is_middle:
+                d_O_i = dist(pos, self.humans[i][0]) - robot_size - self.human_size
+            else:
+                d_O_i = dist(pos, self.humans[i][0]) - robot_size
+            if d_O_i <= 0: d_O_i = 0.0000001
 
             # Calculate repulsive potential for each human
             # Using potential fields
             if (d_O_i < self.Q_star_hum):
-                nablaU_repHum_i = self.eta_hum * (1/d_O_i - 1/self.Q_star_hum) * (1.0 / (pow(d_O_i,2))) * (pos - self.humans[i][0])
+                nablaU_rep_hum_i = self.eta_hum * (1/d_O_i - 1/self.Q_star_hum) * (1.0 / (pow(d_O_i,2))) * (pos - self.humans[i][0])
             else:
-                nablaU_repHum_i = np.zeros(2)
+                nablaU_rep_hum_i = np.zeros(2)
+            
             # Using homemade function
-            # TODO
+            if self.use_human_cost:
+                human_relative_pos = self.pos - self.humans[i][0]
+                nablaU_rep_hum_i = np.array(self.hc.get_cost_xy(x=human_relative_pos[0], y=human_relative_pos[1]))
+                nablaU_rep_hum_i = nablaU_rep_hum_i * (self.pos - self.humans[i][0])/norm(self.pos - self.humans[i][0])
 
             # Calculate values used for vortex
             alpha = self.theta - atan2(pos[1] - self.humans[i][0][1],pos[0] - self.humans[i][0][0])
@@ -509,11 +534,11 @@ class SAPF:
                 [cos(gamma), -sin(gamma)],
                 [sin(gamma), cos(gamma)] 
             ])
-            nablaU_repHum_i = np.matmul(nablaU_repHum_i, R_gamma)            
+            nablaU_rep_hum_i = np.matmul(nablaU_rep_hum_i, R_gamma)            
 
 
             # Add repulsive potential to total repulsive potential
-            nablaU_rep_hum += nablaU_repHum_i
+            nablaU_rep_hum += nablaU_rep_hum_i
 
 
         # Calculate full potential as sum of attractive and all repulsive
@@ -544,18 +569,20 @@ if __name__ == "__main__":
     start = [-10.0, -10.0]
     start_theta = 0
     goal = [10.0, 10.0]
+
     obstacles = []
-    for i in range(9):
-        obstacles.append([(random.random()-0.5)*14, (random.random()-0.5)*14])
+    for i in range(0):
+        obstacles.append([(random.random()-0.5)*20, (random.random()-0.5)*20])
 
     humans = []
-    for i in range(9):
+    for i in range(20):
         humans.append([[(random.random()-0.5)*14, (random.random()-0.5)*14], [random.random()-0.5, random.random()-0.5]])
-        humans[i][1][0] = humans[i][1][0] / sqrt(humans[i][1][0]**2 + humans[i][1][1]**2)
-        humans[i][1][1] = humans[i][1][1] / sqrt(humans[i][1][0]**2 + humans[i][1][1]**2)
-    
+        scale = sqrt(humans[i][1][0]**2 + humans[i][1][1]**2)        
+        humans[i][1][0] = humans[i][1][0] / scale
+        humans[i][1][1] = humans[i][1][1] / scale
+        
 
-    sapf_obstacles = SAPF (
+    sapf = SAPF (
         # SAPF obstacle parameters
         d_star_obs=0.3,
         Q_star_obs=1.0,
@@ -575,10 +602,11 @@ if __name__ == "__main__":
         alpha_th_hum=radians(5),
         theta_max_error_hum=radians(135),
         # Robot limits
-        v_max=2.5,
-        lin_a_max=2.0,
-        omega_max=2.0,
-        rot_a_max=2.0,
+        robot_size=0.55,
+        v_max=1.5,
+        lin_a_max=1.0,
+        omega_max=1.0,
+        rot_a_max=1.0,
         # Start
         start_pos=np.array(start),
         start_theta=start_theta,
@@ -588,6 +616,9 @@ if __name__ == "__main__":
         obstacles=np.array(obstacles),
         # Humans
         humans=np.array(humans),
+        human_size=0.3,
+        human_point_is_middle=True,
+        use_human_cost = True,
         # Simulation
         goal_th=0.2,
         Kp_lin_a=0.2,
@@ -598,43 +629,15 @@ if __name__ == "__main__":
         crash_dist = 0.1
     )
 
-    # sapf_humans = SAPF(
-    #     # SAPF parameters
-    #     d_star_obs=2.0,
-    #     Q_star_obs=5.0,
-    #     d_safe_obs=0.2,
-    #     d_vort_obs=2.0,
-    #     zeta_obs=0.3,
-    #     eta_obs=3.8,
-    #     alpha_th_obs=radians(5),
-    #     theta_max_error_obs=radians(135),
-    #     # Robot limits
-    #     v_max=1.5,
-    #     lin_a_max=2.0,
-    #     omega_max=2.0,
-    #     rot_a_max=2.0,
-    #     # Start
-    #     start_pos=np.array(start),
-    #     start_theta=start_theta,
-    #     # Goal
-    #     goal=np.array(goal),
-    #     # Obstacles
-    #     obstacles=np.array(obstacles),
-    #     # Simulation
-    #     goal_th=0.2,
-    #     Kp_lin_a=0.2,
-    #     Kp_omega=0.6,
-    #     time_step_size=0.1,
-    #     max_iterations=10000,
-    #     noise_mag=0.001,
-    #     crash_dist = 0.1    
-    # )
-
-
     # Single test
     if True:
-        result = sapf_obstacles.simulate_path(plot_path=True, plot_more=True)
-        # result = sapf_humans.simulate_path(plot_path=True, plot_more=True)
+        result = sapf.simulate_path(plot_path=True, plot_more=False, debug=True)
+        print(result)
+
+        sapf.use_human_cost = False
+        sapf.reset()
+
+        result = sapf.simulate_path(plot_path=True, plot_more=False, debug=True)
         print(result)
         pass
 
@@ -652,13 +655,13 @@ if __name__ == "__main__":
             for o in range(9):
                 obstacles.append([(random.random()-0.5)*14, (random.random()-0.5)*14])
             sapf_humans.obstacles=np.array(obstacles)
-            sapf_obstacles.obstacles=np.array(obstacles)
-            sapf_obstacles.reset()
+            sapf.obstacles=np.array(obstacles)
+            sapf.reset()
             sapf_humans.reset()
             
             # Simulate
             # g,c,t = sapf_humans.simulate_path(debug=False, plot_path=True, plot_pot_field=False, plot_pots=False, plot_state=False)
-            g,o,h,t = sapf_obstacles.simulate_path(debug=False, plot_path=True, plot_pot_field=False, plot_pots=False, plot_state=False)
+            g,o,h,t = sapf.simulate_path(debug=False, plot_path=True, plot_pot_field=False, plot_pots=False, plot_state=False)
             print(g,o,h,t)
             if o or h:
                 crashes += 1
