@@ -616,7 +616,7 @@ if __name__ == "__main__":
         obstacles=np.array(obstacles),
         # Humans
         humans=np.array(humans),
-        human_size=0.3,
+        human_size=0.25,
         human_point_is_middle=True,
         use_human_cost = True,
         # Simulation

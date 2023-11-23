@@ -13,7 +13,7 @@ class Human_cost:
         
         self.cost_func = None
         
-        self.person_size = 0.3
+        self.person_size = 0.25
         self.intimate = 1.5*0.3 + self.person_size
         self.personal = 4*0.3 + self.person_size
         self.social = 10*0.3 + self.person_size
