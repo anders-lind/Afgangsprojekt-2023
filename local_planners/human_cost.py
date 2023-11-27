@@ -123,28 +123,26 @@ class Human_cost:
             plt.show()
                     
 
-    def get_cost_xy(self, x, y):
+    def get_cost_xy(self, x, y, people_angle_x, people_angle_y):
+                        
             if sqrt(x**2 + y**2) >= self.personal:
                 return 0
+
             
+            beta = - np.arctan2(people_angle_y, people_angle_x)
+            
+            # https://matthew-brett.github.io/teaching/rotation_2d.html
+            
+            new_x = x*cos(beta) - y*sin(beta)
+            new_y = x*sin(beta) + y*cos(beta)
+
             # # method to find closest value
             #https://stackoverflow.com/questions/2566412/find-nearest-value-in-numpy-array
             
-            idx_x = (np.abs(self.x - x)).argmin()
-            idx_y = (np.abs(self.y - y)).argmin()
+            idx_x = (np.abs(self.x - new_x)).argmin()
+            idx_y = (np.abs(self.y - new_y)).argmin()
 
             return self.cost_func[idx_x, idx_y]
-        
-    def get_cost_angledistance(self, angle, distance):        
-        #polar coordinates:
-        if distance >= self.personal:
-            return 0
-        
-        x = distance*cos(angle)
-        y = distance*sin(angle)
-        
-        return self.get_cost_xy(x, y)
-        
         
 if __name__ == "__main__":
     cost = Human_cost()
@@ -153,11 +151,5 @@ if __name__ == "__main__":
     y = 1  #m
     cost_xy = cost.get_cost_xy(x, y)
     print("The value of the cost-function at (", x, ", ", y, ") is: ", cost_xy)
-    
-    angle = pi/4 #rad
-    distance = sqrt(2) #m
-    cost_angledistance = cost.get_cost_angledistance(angle, distance)
-    print("The value of the cost-function at angle: ", angle, ", distance: ", distance, " is: ", cost_angledistance)
-  
     
     cost.create_graph(visualize=True)

@@ -3,8 +3,7 @@ import math
 import os
 
 
-file_path = os.path.dirname(os.path.realpath(__file__))
-project_path = os.getcwd()
+file_path = os.path.dirname(os.path.abspath(__file__))
 
 
 def dst(landmark1, landmark2):

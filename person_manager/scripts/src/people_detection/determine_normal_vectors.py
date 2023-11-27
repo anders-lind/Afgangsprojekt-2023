@@ -86,7 +86,7 @@ def draw_human_landmarks(ax, points3d_np):
         y.append(point[1])
         z.append(point[2])
 
-    ax.scatter3D(x, y, z, c=z, cmap='hsv')
+    #ax.scatter3D(x, y, z, c=z, cmap='hsv')
 
     ax.plot([x[11], x[12]], [y[11], y[12]], [z[11], z[12]])
     ax.plot([x[11], x[23]], [y[11], y[23]], [z[11], z[23]])
@@ -96,7 +96,7 @@ def draw_human_landmarks(ax, points3d_np):
     ax.plot([x[23], x[24]], [y[23], y[24]], [z[23], z[24]])
     ax.plot([x[28], x[24]], [y[28], y[24]], [z[28], z[24]])
     ax.plot([x[23], x[27]], [y[23], y[27]], [z[23], z[27]])
-    ax.plot([x[11] + (x[12]-x[11])/2, x[0]], [y[11] + (y[12]-y[11])/2, y[0]], [z[11] + (z[12]-z[11])/2, z[0]])
+    ax.plot([x[11] + (x[12]-x[11])/2, (x[7]+x[8])/2], [y[11] + (y[12]-y[11])/2, (y[7]+y[8])/2], [z[11] + (z[12]-z[11])/2, (z[7]+z[8])/2])
 
 
 def draw_plane_for_face(ax, points3d_np):
@@ -141,9 +141,11 @@ def draw_plane_for_body(ax, points3d_np):
     X, Y, Z, normalvector = get_tangentplane_and_normalvector(points)
 
     # DRAW NORMAL VECTOR FROM MIDPOINT OF BODY
-    ax.quiver(averagePoint[0], averagePoint[1], averagePoint[2], normalvector[0] + averagePoint[0], normalvector[1] + averagePoint[1], normalvector[2]+ averagePoint[2], color='b')
+    for i in range(len(normalvector)):
+        normalvector[i] = normalvector[i]*0.3
+    ax.quiver(averagePoint[0], averagePoint[1], averagePoint[2], normalvector[0], normalvector[1], normalvector[2], length=0.5, normalize=True)
     #DRAW TANGENT PLANE FOR FACE
-    ax.plot_surface(X, Y, Z, color='red', alpha=0.5)
+    ax.plot_surface(X, Y, Z, color='red', alpha=0.2)
 
 
 def picture_detection(picture_file_name):
@@ -174,19 +176,22 @@ def picture_detection(picture_file_name):
 
     #DRAW 3D POINTS IN PLOT
     fig = plt.figure()
-    ax = plt.axes(projection='3d')
+    ax = fig.add_subplot(111, projection='3d')
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+    ax.set_zlim([-1, 1])
+    ax.tick_params(axis='both', which='major', labelsize=7.5, width=2.5, length=10)
 
-    plt.xlim([-1, 3])
-    plt.ylim([-1, 3])
-
+    plt.xlim([-1, 1])
+    plt.ylim([-1, 1])
+    
 
     # DRAW LANDMARKS OF HUMAN
     draw_human_landmarks(ax, points3d_np)
 
     # MAKE A 3D PLANE FOR FACE
-    draw_plane_for_face(ax, points3d_np)
+    #draw_plane_for_face(ax, points3d_np)
 
     # MAKE A 3D PLANE FOR BODY
     draw_plane_for_body(ax, points3d_np)
@@ -195,4 +200,4 @@ def picture_detection(picture_file_name):
 
 
 if __name__ == "__main__":
-    picture_detection("real_person_tpose.jpeg")
+    picture_detection("anders_cropped.jpg")

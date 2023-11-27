@@ -89,9 +89,9 @@ class DWA:
         
         
         if self.with_people == True:
-            self.obj_alpha = 0.7  
+            self.obj_alpha = 0.01  
             self.obj_beta = -0.2  
-            self.obj_gamma = 1.0 
+            self.obj_gamma = 0.2 
             self.obj_eta = 1.0
             
             self.cost = HC()
@@ -104,7 +104,7 @@ class DWA:
         self.w = 0
         
         self.x = -8
-        self.y = -8
+        self.y = 8
         
         self.goal_x = 8
         self.goal_y = 8
@@ -138,16 +138,14 @@ class DWA:
         ]
         
         self.people = [
-            [[5.15, 5.22],[0, 1]],
-            [[7.01, 3.55],[1, 1]],
-            [[5.0, 3.0],[0, 2]],
-        [[2, 1], [0, 4]],
+            [[-5, 7.9],[0, 1]] ,
+            [[-3, 8.1],[0, -1]],
+            [[3, 7.9],[0, 1]],
+        [[6, 8.1], [0, -1]],
         ]
         
-        
-        
-        
-        #udkommeter dette hvis tilfældige forhindringer IKKE ønskes:
+
+        # udkommeter dette hvis tilfældige forhindringer IKKE ønskes:
         
         num_obstacles = 0
         num_people = 20
@@ -292,7 +290,8 @@ class DWA:
                 for x,y,theta in poses:                 
                     for i in range(len(self.people)):
                         vec = [x - self.people[i][0][0], y - self.people[i][0][1]]
-                        price = self.cost.get_cost_xy(vec[0], vec[1])
+                        people_direc = [self.people[i][1][0], self.people[i][1][1]]
+                        price = self.cost.get_cost_xy(vec[0], vec[1], people_direc[0], people_direc[1])
                         human_score -= price
 
             self.human_score = self.obj_eta*( human_score )
