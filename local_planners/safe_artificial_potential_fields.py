@@ -414,8 +414,10 @@ class SAPF:
         theta_error = theta_ref - self.theta
         theta_error = atan2(sin(theta_error), cos(theta_error)) # wrap [-pi, pi]
 
+        beta = (self.theta_max_error_obs - theta_error) / (self.theta_max_error_obs)
+
         if abs(theta_error) < self.theta_max_error_obs:
-            v_ref = min(norm(potential)*(self.theta_max_error_obs - theta_error) / (self.theta_max_error_obs), self.v_max)
+            v_ref = min(beta*norm(potential), self.v_max)
         else:
             v_ref = 0
 
@@ -451,7 +453,6 @@ class SAPF:
 
         # For every obstacle
         for i in range(len(self.obstacles)):
-            if debug: print("obstacle", i)
             # Distance to object
             d_O_i = dist(pos, self.obstacles[i]) - robot_size
             if d_O_i <= 0: d_O_i = 0.0000001
@@ -463,7 +464,6 @@ class SAPF:
                 nablaU_repObs_i = np.zeros(2)
 
             # Calculate values used for vortex
-            # alpha = self.theta - atan2(self.obstacles[i][1] - pos[1],self.obstacles[i][0] - pos[0])
             alpha = self.theta - atan2(pos[1] - self.obstacles[i][1],pos[0] - self.obstacles[i][0])
             alpha = atan2(sin(alpha), cos(alpha))
             
@@ -571,6 +571,7 @@ if __name__ == "__main__":
     #492525103  
     #36821076
     seed = random.randrange(1000000000)
+    seed = 36821076
     random.seed(seed)
     print("seed:", seed)
     
@@ -584,11 +585,13 @@ if __name__ == "__main__":
         obstacles.append([(random.random()-0.5)*20, (random.random()-0.5)*20])
 
     humans = []
-    for i in range(20):
+    for i in range(1):
         humans.append([[(random.random()-0.5)*14, (random.random()-0.5)*14], [random.random()-0.5, random.random()-0.5]])
         scale = sqrt(humans[i][1][0]**2 + humans[i][1][1]**2)        
         humans[i][1][0] = humans[i][1][0] / scale
         humans[i][1][1] = humans[i][1][1] / scale
+    
+    # humans = [[[8, 5], [1, 0]]]
         
 
     sapf = SAPF (
@@ -602,11 +605,11 @@ if __name__ == "__main__":
         alpha_th_obs=radians(5),
         theta_max_error_obs=radians(135),
         # SAPF human parameters
-        d_star_hum=2.0,
+        d_star_hum=2.0,  # Remove human version
         Q_star_hum=5.0,
         d_safe_hum=0.2,
         d_vort_hum=2.0,
-        zeta_hum=0.3,
+        zeta_hum=0.3,   # Remove human version
         eta_hum=3.8,
         alpha_th_hum=radians(5),
         theta_max_error_hum=radians(135),
