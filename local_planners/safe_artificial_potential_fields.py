@@ -165,7 +165,7 @@ class SAPF:
         
         if debug:
             print("Start pos:", self.start)
-            print("Goal:", self.goal)
+            print("Goal:     ", self.goal)
 
         # Simulate movement
         i = 0
@@ -284,6 +284,7 @@ class SAPF:
 
         ### Draw potential field ###
         # TODO: Make dynaimc with changes in plot viewer
+        
         if plot_more:
             # Size limits
             lim_start = self.start
@@ -301,7 +302,7 @@ class SAPF:
                 for i_y in range(field_y_arrows):
                     # Calc pot
                     pos = [x_line[i_x], y_line[i_y]]
-                    pot = self.calc_potential(goal=self.goal, pos=pos)
+                    pot = self.calc_potential(goal=self.goal, pos=pos, debug=debug)
                     # Limit arrow size
                     if norm(pot) > 1:
                         pot = pot/norm(pot)
@@ -349,6 +350,10 @@ class SAPF:
 
 
         return reached_goal, hit_obstacle, hit_human, i*self.time_step_size
+
+
+    def draw_arrows(self, text: str):
+        print("something changed:", text)
 
 
 
@@ -446,6 +451,8 @@ class SAPF:
 
         # For every obstacle
         for i in range(len(self.obstacles)):
+            if debug: print("obstacle", i)
+            # Distance to object
             d_O_i = dist(pos, self.obstacles[i]) - robot_size
             if d_O_i <= 0: d_O_i = 0.0000001
 
@@ -497,17 +504,19 @@ class SAPF:
             if d_O_i <= 0: d_O_i = 0.0000001
 
             # Calculate repulsive potential for each human
-            # Using potential fields
-            if (d_O_i < self.Q_star_hum):
-                nablaU_rep_hum_i = self.eta_hum * (1/d_O_i - 1/self.Q_star_hum) * (1.0 / (pow(d_O_i,2))) * (pos - self.humans[i][0])
-            else:
-                nablaU_rep_hum_i = np.zeros(2)
-            
             # Using homemade function
             if self.use_human_cost:
                 human_relative_pos = self.pos - self.humans[i][0]
                 nablaU_rep_hum_i = np.array(self.hc.get_cost_xy(x=human_relative_pos[0], y=human_relative_pos[1]))
                 nablaU_rep_hum_i = nablaU_rep_hum_i * (self.pos - self.humans[i][0])/norm(self.pos - self.humans[i][0])
+                # TODO: Make sure homemade works!
+                print(self.hc.get_cost_xy(x=human_relative_pos[0], y=human_relative_pos[1]))
+            # Using potential fields
+            else:
+                if (d_O_i < self.Q_star_hum):
+                    nablaU_rep_hum_i = self.eta_hum * (1/d_O_i - 1/self.Q_star_hum) * (1.0 / (pow(d_O_i,2))) * (pos - self.humans[i][0])
+                else:
+                    nablaU_rep_hum_i = np.zeros(2)
 
             # Calculate values used for vortex
             alpha = self.theta - atan2(pos[1] - self.humans[i][0][1],pos[0] - self.humans[i][0][0])
@@ -544,8 +553,8 @@ class SAPF:
         # Calculate full potential as sum of attractive and all repulsive
         nabla_U = nablaU_att + nablaU_rep_obs + nablaU_rep_hum
 
-        if debug: print("nablaU_att:", nablaU_att)
-        if debug: print("nablaU_rep:", nablaU_rep)
+        # if debug: print("nablaU_att:", nablaU_att)
+        # if debug: print("nablaU_rep:", nablaU_rep)
 
         return nabla_U, nablaU_att, nablaU_rep
 
@@ -618,7 +627,7 @@ if __name__ == "__main__":
         humans=np.array(humans),
         human_size=0.25,
         human_point_is_middle=True,
-        use_human_cost = True,
+        use_human_cost = False,              # Use homemade human function?
         # Simulation
         goal_th=0.2,
         Kp_lin_a=0.2,
@@ -631,14 +640,14 @@ if __name__ == "__main__":
 
     # Single test
     if True:
-        result = sapf.simulate_path(plot_path=True, plot_more=False, debug=True)
+        result = sapf.simulate_path(plot_path=True, plot_more=True, debug=True)
         print(result)
 
-        sapf.use_human_cost = False
-        sapf.reset()
+        # sapf.use_human_cost = False
+        # sapf.reset()
 
-        result = sapf.simulate_path(plot_path=True, plot_more=False, debug=True)
-        print(result)
+        # result = sapf.simulate_path(plot_path=True, plot_more=False, debug=True)
+        # print(result)
         pass
 
     
