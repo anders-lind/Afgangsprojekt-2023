@@ -60,7 +60,7 @@ def dist_homemade(x: list, y: list):
     return sqrt(dist_sum)
 
 class DWA:
-    def __init__(self, dT = 0.1, simT = 0.5, vPrec = 0.05, wPrec = 0.05, goal_th = 0.1, with_people = False):
+    def __init__(self, dT = 0.1, simT = 2.0, vPrec = 0.05, wPrec = 0.05, goal_th = 0.1, with_people = False):
         
         #Making a square map
         
@@ -89,14 +89,14 @@ class DWA:
         
         
         if self.with_people == True:
-            self.obj_alpha = 0.01  
-            self.obj_beta = -0.2  
-            self.obj_gamma = 0.2 
-            self.obj_eta = 1.0
+            self.obj_alpha = -10  
+            self.obj_beta = 0#-0.2  
+            self.obj_gamma = 10 
+            self.obj_eta =  0 # -1.0
             
             self.cost = HC()
         
-        self.max_iterations= 1000
+        self.max_iterations= 10000
         self.goal_th = goal_th
                
         self.theta = 0
@@ -147,8 +147,10 @@ class DWA:
 
         # udkommeter dette hvis tilfældige forhindringer IKKE ønskes:
         
-        num_obstacles = 0
-        num_people = 20
+        random.seed(18)
+        
+        num_obstacles = 10
+        num_people = 10
         
         self.obstacles.clear()
         for i in range(num_obstacles):
@@ -168,7 +170,7 @@ class DWA:
         
         
         
-        self.a_max = 1.5 #m/s²
+        self.a_max = 3.0 #m/s²
         self.alpha_max = 3 #rad/s²
         
         self.v_max = 1.5 #m/s
@@ -262,27 +264,34 @@ class DWA:
                        
             min_dist = 100000
             change_in_distance_to_goal = - 100000
-            
+            heading_error = 0
             for x,y,theta in poses:                 
                 for obstacle in self.obstacles:
+                
+                # Distance score
+                
                     obs_dist = dist([x, y], [obstacle[0], obstacle[1]])
                     if obs_dist < min_dist:
                         min_dist = obs_dist
-    
-                dist_goal = dist([self.x, self.y], [self.goal_x, self.goal_y]) - dist([x, y], [self.goal_x, self.goal_y])
+
+                # Heading score
+                
+            heading_error = atan2(self.goal_y - poses[x], self.goal_x - x) - theta
+            heading_error = atan2(sin(heading_error), cos(heading_error))
+
+                # dist_goal = dist([self.x, self.y], [self.goal_x, self.goal_y]) - dist([x, y], [self.goal_x, self.goal_y])
                                     
-                if dist_goal > change_in_distance_to_goal:
-                    change_in_distance_to_goal = dist_goal
+                # if dist_goal > change_in_distance_to_goal:
+                #     change_in_distance_to_goal = dist_goal
                     
-                if dist([x, y], [self.goal_x, self.goal_y]) < self.goal_th:
-                        self.stop = True
-            
+                # if dist([x, y], [self.goal_x, self.goal_y]) < self.goal_th:
+                #         self.stop = True
             
             self.distance_score = self.obj_beta*((1/min_dist)**2)
             
-            self.heading_score = self.obj_alpha*(dist_goal)
+            self.heading_score = self.obj_alpha*(heading_error)
             
-            self.velocity_score = self.obj_gamma*v
+            self.velocity_score = self.obj_gamma*abs(v)
 
             human_score = 0
             
@@ -292,7 +301,9 @@ class DWA:
                         vec = [x - self.people[i][0][0], y - self.people[i][0][1]]
                         people_direc = [self.people[i][1][0], self.people[i][1][1]]
                         price = self.cost.get_cost_xy(vec[0], vec[1], people_direc[0], people_direc[1])
-                        human_score -= price
+                        if price > human_score:
+                            human_score = price
+            print("Pos: ", self.x, self.y)
 
             self.human_score = self.obj_eta*( human_score )
             
