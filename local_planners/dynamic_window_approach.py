@@ -276,7 +276,7 @@ class DWA:
 
                 # Heading score
                 
-            heading_error = atan2(self.goal_y - poses[x], self.goal_x - x) - theta
+            heading_error = atan2(self.goal_y - poses[-1][1], self.goal_x - poses[-1][0]) - poses[-1][2]
             heading_error = atan2(sin(heading_error), cos(heading_error))
 
                 # dist_goal = dist([self.x, self.y], [self.goal_x, self.goal_y]) - dist([x, y], [self.goal_x, self.goal_y])
