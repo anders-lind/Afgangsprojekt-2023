@@ -289,12 +289,22 @@ class DWA:
             human_score = 0
             
             if self.with_people == True:
-                for x,y,theta in poses:                 
-                    for i in range(len(self.people)):
-                        vec = [x - self.people[i][0][0], y - self.people[i][0][1]]
-                        people_direc = [self.people[i][1][0], self.people[i][1][1]]
-                        price = self.cost.get_cost_xy(vec[0], vec[1], people_direc[0], people_direc[1])
-                        human_score -= price
+                worst_score = float("inf")
+                worst_pose = None
+
+                for p in range(len(poses)):
+                    x,y,theta = poses[p]
+                    worst_score = float("inf")
+                    worst_pose = None
+                    
+                    for h in range(len(self.people)):
+                        hum_to_rob = [x - self.people[h][0][0], y - self.people[h][0][1]]
+                        hum_ori = [self.people[h][1][0], self.people[h][1][1]]
+                        price = self.cost.get_cost_xy(hum_to_rob[0], hum_to_rob[1], hum_ori[0], hum_ori[1])
+                        if (price < worst_score):
+                            worst_score = price
+                            worst_pose = p
+                            human_score = price
 
             self.human_score = self.obj_eta*( human_score )
             
