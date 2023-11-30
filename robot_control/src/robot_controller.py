@@ -5,8 +5,8 @@ from sensor_msgs.msg import PointCloud
 
 from math import cos, sin, atan2
 
-from local_planners.dynamic_window_approach import DWA
-from local_planners.safe_artificial_potential_fields import SAPF
+from dynamic_window_approach import DWA
+from safe_artificial_potential_fields import SAPF
 
 
 class Local_Planner:
@@ -85,9 +85,7 @@ class Local_Planner:
 
 
     def planner(self, use_sapf = True):
-        
-        if use_sapf == True:
-            self.sapf
+        pass
 
     
     def main(self):
