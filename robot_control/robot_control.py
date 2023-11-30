@@ -33,11 +33,8 @@ class Robot_control:
         )
 
 
-    def filter_humans(self, data : PointCloud):
-        pass
-        # print("update_humans:", data.points.__len__())
 
-    def filter_obstacles(self, data : PointCloud):
+    def filter_points(self, data : PointCloud):
         print("Doing stuff:")
         
         print("len:", data.points.__len__())
@@ -69,13 +66,19 @@ class Robot_control:
             new_data.points.append(point)
             i += 1
         
+        return new_data
+    
 
 
-        # Publish new filtered data
-        self.obs_pup.publish(new_data)
+    def filter_humans(self, data : PointCloud):
+        filtered_data = self.filter_humans(data)
+        self.hum_pup.publish(filtered_data)
 
-        print("new len:",new_data.points.__len__())
 
+
+    def filter_obstacles(self, data : PointCloud):
+        filtered_data = self.filter_humans(data)
+        self.obs_pup.publish(filtered_data)
 
 
 
