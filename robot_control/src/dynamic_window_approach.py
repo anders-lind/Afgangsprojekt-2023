@@ -294,14 +294,15 @@ class DWA:
 
                 for p in range(len(poses)):
                     x,y,theta = poses[p]
-                    worst_score = float("inf")
+                    worst_score = -float("inf")
                     worst_pose = None
                     
                     for h in range(len(self.people)):
                         hum_to_rob = [x - self.people[h][0][0], y - self.people[h][0][1]]
                         hum_ori = [self.people[h][1][0], self.people[h][1][1]]
                         price = self.cost.get_cost_xy(hum_to_rob[0], hum_to_rob[1], hum_ori[0], hum_ori[1])
-                        if (price < worst_score):
+                        # TODO: Is higher value better or worse??
+                        if (price > worst_score):
                             worst_score = price
                             worst_pose = p
                             human_score = price
