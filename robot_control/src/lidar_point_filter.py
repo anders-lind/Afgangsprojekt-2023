@@ -10,7 +10,7 @@ from std_msgs.msg import Header
 import math
 
 
-class Robot_control:
+class Lidar_point_filter:
     def __init__(self):
         # Subscribers
         self.hum_sub = rospy.Subscriber(
@@ -93,9 +93,9 @@ if __name__ == "__main__":
     #   Use path planning to calculate next pose
     #   Send next pose to MiR
 
-    print("Starting robot control script")
-    rc = Robot_control()
-    rospy.init_node("Object_listener")
+    print("Starting lidar point filter script")
+    filter = Lidar_point_filter()
+    rospy.init_node("Lidar_point_filter")
     rospy.spin()
 
 
