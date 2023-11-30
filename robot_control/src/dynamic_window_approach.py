@@ -33,9 +33,9 @@ class DWA:
         self.dT = dT
         self.N = int(floor(self.simT/self.dT))
         
-        self.obj_alpha = 0.2
+        self.obj_alpha = -4
         self.obj_beta = -0.2
-        self.obj_gamma = 0.2 
+        self.obj_gamma = 0.5 
         self.obj_eta = 1.0
             
         self.cost = HC()
@@ -62,9 +62,7 @@ class DWA:
         vr_max = min(self.v_max, vcur + self.a_max*self.dT)
         wr_min = max(self.w_min, wcur - self.alpha_max*self.dT)
         wr_max = min(self.w_max, wcur + self.alpha_max*self.dT)
-        print("a: ", self.a_max, ", dt: ",  self.dT, ", alpha : ", self.alpha_max)
-        print("w: ", wcur, ", v: ", vcur)
-        print("v: ", vr_min, vr_max, ", w: ", wr_min, wr_max)
+
         #Determine poses fo each v,w
         for v in np.arange(vr_min, vr_max, self.vPrec):
             for w in np.arange(wr_min, wr_max, self.wPrec):
@@ -121,6 +119,7 @@ class DWA:
             human_score = 0
             min_dist = 100000
             change_in_distance_to_goal = -100000
+            biggest_angle_error = 0
             
             with_people = False
         
@@ -138,6 +137,7 @@ class DWA:
                 
                 x = poses[i][0]
                 y = poses[i][1]
+                theta = poses[i][2]
                 
                 if with_obstacles:                 
                     for i in range(len(obstacles)):
@@ -154,16 +154,29 @@ class DWA:
                         price = self.cost.get_cost_xy(vec[0], vec[1], people_direc[0], people_direc[1])
                         human_score -= price
 
-                dist_goal = dist([xcur, ycur], [xgoal, ygoal]) - dist([x, y], [xgoal, ygoal])
+                # dist_goal = dist([xcur, ycur], [xgoal, ygoal]) - dist([x, y], [xgoal, ygoal])
                                     
-                if dist_goal > change_in_distance_to_goal:
-                    change_in_distance_to_goal = dist_goal
-            
-            if dist([poses[1][0], poses[1][1]], [xgoal, ygoal]) < self.goal_th:
-                self.stop = True
+                # if dist_goal > change_in_distance_to_goal:
+                #     change_in_distance_to_goal = dist_goal                 
+                
+                angle_goal = atan2(ygoal-y, xgoal-x)
+                
+                vector_1 = [cos(angle_goal), sin(angle_goal)]
+                vector_2 = [cos(theta), sin(theta)]
 
+                unit_vector_1 = vector_1 / np.linalg.norm(vector_1)
+                unit_vector_2 = vector_2 / np.linalg.norm(vector_2)
+                
+                dot_product = np.dot(unit_vector_1, unit_vector_2)
+                angle = np.arccos(dot_product)
+                error_angle = (angle/pi)
+
+                if error_angle > biggest_angle_error:
+                    biggest_angle_error = error_angle
             
-            heading_score = self.obj_alpha*dist_goal
+           # heading_score = self.obj_alpha*dist_goal
+           
+            heading_score = self.obj_alpha*biggest_angle_error
             
             velocity_score = self.obj_gamma*abs(v)
             
@@ -375,16 +388,3 @@ if __name__ == '__main__':
         
     except rospy.ROSInterruptException:
         print("Error")
-        
-        
-        
-
-# vector_1 = [0, 1]
-# vector_2 = [1, 0]
-
-# unit_vector_1 = vector_1 / np.linalg.norm(vector_1)
-# unit_vector_2 = vector_2 / np.linalg.norm(vector_2)
-# dot_product = np.dot(unit_vector_1, unit_vector_2)
-# angle = np.arccos(dot_product)
-# score = -1*(angle/pi)
-# print(angle)
