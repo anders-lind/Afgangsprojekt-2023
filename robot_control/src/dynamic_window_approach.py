@@ -118,7 +118,6 @@ class DWA:
             score = 0 
             human_score = 0
             min_dist = 100000
-            change_in_distance_to_goal = -100000
             biggest_angle_error = 0
             
             with_people = False
@@ -152,13 +151,9 @@ class DWA:
                         people_direc = [people[i][1][0], people[i][1][1]]
                         
                         price = self.cost.get_cost_xy(vec[0], vec[1], people_direc[0], people_direc[1])
-                        human_score -= price
+                        if price > human_score:
+                            human_score = price
 
-                # dist_goal = dist([xcur, ycur], [xgoal, ygoal]) - dist([x, y], [xgoal, ygoal])
-                                    
-                # if dist_goal > change_in_distance_to_goal:
-                #     change_in_distance_to_goal = dist_goal                 
-                
                 angle_goal = atan2(ygoal-y, xgoal-x)
                 
                 vector_1 = [cos(angle_goal), sin(angle_goal)]
@@ -174,8 +169,6 @@ class DWA:
                 if error_angle > biggest_angle_error:
                     biggest_angle_error = error_angle
             
-           # heading_score = self.obj_alpha*dist_goal
-           
             heading_score = self.obj_alpha*biggest_angle_error
             
             velocity_score = self.obj_gamma*abs(v)
