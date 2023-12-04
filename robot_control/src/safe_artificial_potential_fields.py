@@ -12,47 +12,46 @@ from human_cost import Human_cost as hc
 class SAPF:
     def __init__(self,
             # start orientation
-            start_pos,
-            start_theta,
+            start_pos = [0,0],
+            start_theta = 0, 
             # goal
-            goal,
+            goal = [10,10],
             # obstacles
-            obstacles,
-            humans,
-            human_size,
-            human_point_is_middle,
-            use_human_cost,
+            obstacles = [],
+            humans = [],
+            human_point_is_middle = True,
+            use_human_cost = False,      # Use homemade human function?
             # SAPF parameters
-            d_star_obs,
-            d_safe_obs,
-            d_vort_obs,
-            zeta_obs,
-            eta_obs,
-            Q_star_obs,
-            alpha_th_obs,
-            theta_max_error_obs,
-            d_star_hum,
-            d_safe_hum,
-            d_vort_hum,
-            zeta_hum,
-            eta_hum,
-            Q_star_hum,
-            alpha_th_hum,
-            theta_max_error_hum,
+            d_star_obs = 0.3,
+            d_safe_obs = 0.2,
+            d_vort_obs = 0.35,
+            zeta_obs = 2.1547,
+            eta_obs = 0.732,
+            Q_star_obs = 1.0,
+            alpha_th_obs = radians(5),
+            theta_max_error_obs = radians(135),
+            d_star_hum = 2.0,         # Remove human version
+            d_safe_hum = 0.2,
+            d_vort_hum = 2.0,
+            zeta_hum = 0.3,           # Remove human version
+            eta_hum = 3.8,
+            Q_star_hum = 5.0,
+            alpha_th_hum = radians(5),
+            theta_max_error_hum = radians(135),
             # robot
-            robot_size,
-            v_max,
-            omega_max,
-            lin_a_max,
-            rot_a_max,
+            robot_size = 0.55,
+            v_max = 1.5,
+            omega_max = 1.0,
+            lin_a_max = 1.0,
+            rot_a_max = 1.0,
             # Simulation #
-            Kp_lin_a = 0.3,
-            Kp_omega = 0.3,
+            Kp_lin_a = 0.2,
+            Kp_omega = 1.6,
             time_step_size = 0.1,
-            goal_th = 0.1,
-            max_iterations = 1000,
+            goal_th = 0.2,
+            max_iterations = 10000,
             noise_mag = 0.001,
-            crash_dist = 0.05
+            crash_dist = 0.1
         ):
 
         ### SAPF parameters ###
@@ -74,7 +73,6 @@ class SAPF:
         self.Q_star_hum = Q_star_hum
         self.alpha_th_hum = alpha_th_hum
         self.theta_max_error_hum = theta_max_error_hum
-        self.human_size = human_size
         self.human_point_is_middle = human_point_is_middle
         self.hc = hc()
         self.use_human_cost = use_human_cost
@@ -117,6 +115,35 @@ class SAPF:
         self.theta = self.start_theta
         self.omega = 0.0
         self.vel = 0.0
+
+    
+    def update_map(self, obstacles: [float, float], humans: [[[float, float], [float, float]]], goal=[float, float]):
+        self.obstacles = obstacles
+        self.humans = humans
+        self.goal = goal
+    
+
+    def update_robot_state(self, x: float, y: float, theta: float):
+        self.pos = [x, y]
+        self.theta = theta
+
+    
+    def calc_step(self) -> [float, float]:
+        """
+        This method uses SAPF to calculate a linear- and angular velocity for the current state of the robot and map
+        """
+
+        # vel_ref
+        pot = self.calc_potential(pos=self.pos, goal=self.goal, robot_size=self.robot_size)
+        vel_ref, theta_ref = self.calc_ref_values(pot)
+
+        # omega_ref
+        theta_error = theta_ref - self.theta
+        theta_error = atan2(sin(theta_error), cos(theta_error))
+        omega_ref = self.Kp_omega * theta_error
+
+
+        return vel_ref, omega_ref
 
 
 
@@ -167,7 +194,8 @@ class SAPF:
             print("Start pos:", self.start)
             print("Goal:     ", self.goal)
 
-        # Simulate movement
+
+        ### Simulate movement ###
         i = 0
         while i < self.max_iterations and norm(self.goal - self.pos) > self.goal_th:
             i += 1
@@ -595,50 +623,41 @@ if __name__ == "__main__":
         
 
     sapf = SAPF (
-        # SAPF obstacle parameters
-        d_star_obs=0.3,
-        Q_star_obs=1.0,
-        d_safe_obs=0.2,
-        d_vort_obs=0.35,
-        zeta_obs=2.1547,
-        eta_obs=0.732,
-        alpha_th_obs=radians(5),
-        theta_max_error_obs=radians(135),
-        # SAPF human parameters
-        d_star_hum=2.0,  # Remove human version
-        Q_star_hum=5.0,
-        d_safe_hum=0.2,
-        d_vort_hum=2.0,
-        zeta_hum=0.3,   # Remove human version
-        eta_hum=3.8,
-        alpha_th_hum=radians(5),
-        theta_max_error_hum=radians(135),
-        # Robot limits
-        robot_size=0.55,
-        v_max=1.5,
-        lin_a_max=1.0,
-        omega_max=1.0,
-        rot_a_max=1.0,
-        # Start
-        start_pos=np.array(start),
-        start_theta=start_theta,
-        # Goal
-        goal=np.array(goal),
-        # Obstacles
-        obstacles=np.array(obstacles),
-        # Humans
-        humans=np.array(humans),
-        human_size=0.25,
-        human_point_is_middle=True,
-        use_human_cost = False,              # Use homemade human function?
-        # Simulation
-        goal_th=0.2,
-        Kp_lin_a=0.2,
-        Kp_omega=1.6,
-        time_step_size=0.1,
-        max_iterations=10000,
-        noise_mag=0.001,
-        crash_dist = 0.1
+        # # SAPF obstacle parameters
+        # d_star_obs=0.3,
+        # Q_star_obs=1.0,
+        # d_safe_obs=0.2,
+        # d_vort_obs=0.35,
+        # zeta_obs=2.1547,
+        # eta_obs=0.732,
+        # alpha_th_obs=radians(5),
+        # theta_max_error_obs=radians(135),
+        # # SAPF human parameters
+        # d_star_hum=2.0,  # Remove human version
+        # Q_star_hum=5.0,
+        # d_safe_hum=0.2,
+        # d_vort_hum=2.0,
+        # zeta_hum=0.3,   # Remove human version
+        # eta_hum=3.8,
+        # alpha_th_hum=radians(5),
+        # theta_max_error_hum=radians(135),
+        # # Robot limits
+        # robot_size=0.55,
+        # v_max=1.5,
+        # lin_a_max=1.0,
+        # omega_max=1.0,
+        # rot_a_max=1.0,
+        # # Start
+        # start_pos=np.array(start),
+        # start_theta=start_theta,
+        # # Goal
+        # goal=np.array(goal),
+        # # Obstacles
+        # obstacles=np.array(obstacles),
+        # # Humans
+        # humans=np.array(humans),
+        # human_point_is_middle=True,
+        # use_human_cost = False,       # Use homemade human function?
     )
 
     # Single test
