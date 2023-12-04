@@ -3,10 +3,14 @@ import rospy
 from geometry_msgs.msg import PoseArray, Pose, TwistStamped
 from sensor_msgs.msg import PointCloud
 
-from math import cos, sin, atan2
+from math import cos, sin, atan2, sqrt, pi
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+from multiprocessing import Process
 
-from local_planners.dynamic_window_approach import DWA
-from local_planners.safe_artificial_potential_fields import SAPF
+from dynamic_window_approach import DWA
+from safe_artificial_potential_fields import SAPF
 
 
 class Local_Planner:
@@ -16,10 +20,8 @@ class Local_Planner:
         self.obstacles = []
         self.humans = []
          
-        self.obstacle_subscriber = rospy.Subscriber('/obstacles_without_people',
-                                                PointCloud, self.update_obstacles)
-        
-        self.human_subscriber = rospy.Subscriber('/people',PoseArray, self.update_humans)
+        self.obstacle_subscriber = rospy.Subscriber('/obstacles_without_people',PointCloud, self.update_obstacles_callback)
+        self.human_subscriber = rospy.Subscriber('/people',PoseArray, self.update_humans_callback)
         
         
         self.x = 0
@@ -29,24 +31,31 @@ class Local_Planner:
         self.v = 0
         self.w = 0
         
-        self.velocity_subscriber = rospy.Subscriber('/cmd_vel',TwistStamped, self.update_velocities)
-        self.pose_subscriber = rospy.Subscriber('/robot_pose',Pose, self.update_pose)
+        self.velocity_subscriber = rospy.Subscriber('/cmd_vel',TwistStamped, self.update_velocities_callback)
+        self.pose_subscriber = rospy.Subscriber('/robot_pose',Pose, self.update_pose_callback)
         
+        self.dt = rate/1000.0
         self.rate = rospy.Rate(rate)
         
         self.dwa = DWA()
         self.sapf = SAPF()
+
+        # Logs
+        self.x_log = []
+        self.y_log = []
+        self.v_log = []
+        self.w_log = []
                   
         
     
-    def update_obstacles(self, data:PointCloud):
+    def update_obstacles_callback(self, data:PointCloud):
         self.obstacles.clear()
         for i in range(len(data.points)):
             point = [data.points[i].x, data.points[i].y]
             self.obstacles.append(point)
             
             
-    def update_humans(self, data:PoseArray):
+    def update_humans_callback(self, data:PoseArray):
         self.humans.clear()
         for i in range(len(data.poses)):
             orientation = data.poses[i].orientation
@@ -64,45 +73,179 @@ class Local_Planner:
             self.humans.append(person)
             
             
-    def update_velocities(self, data:TwistStamped):
+    def update_velocities_callback(self, data:TwistStamped):
         self.v = data.twist.linear.x
         self.w = data.twist.angular.z
     
     
     
-    def update_pose(self, data:Pose):
+    def update_pose_callback(self, data:Pose):
         self.x = data.position.x
         self.y = data.position.y
         
         t3 = +2.0 * (data.orientation.w * data.orientation.z)
         t4 = +1.0 - 2.0 * (data.orientation.z * data.orientation.z)
         self.theta = atan2(t3, t4)
-            
-            
-    def move_robot(self, v, w, x, y):
-        pass
 
+    
+    def log(self):
+        self.x_log.append(self.x)
+        self.y_log.append(self.y)
+        self.v_log.append(self.v)
+        self.w_log.append(self.w)
+    
+
+    def init_plot(self):
+        self.line_plot.set_data([], [])
+
+        return self.line_plot,
+
+
+
+    def animate(self, x_log, y_log):
+        self.line_plot.set_data(x_log, y_log)
+
+        return self.line_plot, 
+    
+
+    def show_log(self, v=False, w=False):
+        # plot pos and goal and obstacles
+        plt.title("pos")
+        plt.grid()
+        plt.plot(self.goal[0], self.goal[1], marker='o')
+        plt.plot(self.x_log, self.y_log)
+        for o in range(len(self.obstacles)):
+            plt.plot(self.obstacles[o][0], self.obstacles[o][1], marker='o')
+
+        # Plot v
+        if v:
+            fig = plt.figure()
+            plt.grid()
+            plt.title("v")
+            plt.plot(self.v_log)
+
+        # Plot w
+        if w:
+            fig = plt.figure()
+            plt.grid()
+            plt.title("w")
+            plt.plot(self.w_log)
+
+
+            
+            
+    def move_robot(self, v, w, simulation = False):
+        # Simulation of movement
+        if simulation:
+                self.theta = self.theta + w * (self.dt)
+                self.x = self.x + v * (self.dt) * cos(self.theta)
+                self.y = self.y + v * (self.dt) * sin(self.theta)
+        
+        # Real movement
+        else:
+            pass
 
 
     def planner(self, use_sapf = True):
         
+        # Using SAPF
         if use_sapf == True:
-            self.sapf
+            # Update map and robot state
+            self.sapf.update_map(obstacles=np.array(self.obstacles), humans=np.array(self.humans), goal=np.array(self.goal))
+            self.sapf.update_robot_state(x=self.x, y=self.y, theta=self.theta)
+
+            # Get linear and angular velocities
+            v, w = self.sapf.calc_step()
+
+            return v, w
+        
+
+        # Using DWA
+        else:
+            #TODO: Do DWA stuff here
+            pass
+
+
 
     
     def main(self):
+        self.goal = [10,10]
+        self.obstacles = [[5,5], [6,5]]
+        self.max_i = 10000
+
+        i = 0
         while not rospy.is_shutdown():
-            # DO GOOD WORK HERE
-            
+            print(i)
+            self.v, self.w = self.planner(use_sapf=True)
+            self.move_robot(self.v, self.w, simulation=True)
+            self.log()
+
+
+            # If at goal
+            if sqrt((self.goal[0] - self.x)**2 + (self.goal[1] - self.y)**2) < 0.1:
+                print("At goal")
+                break
+
+            # If at max iterations
+            i+=1
+            if i > self.max_i:
+                print("Max iterations reached")
+                break
+
             self.rate.sleep()
 
+        # self.show_log()
+
+
+
+def runGraph():
+    fig = plt.figure()
+    axis = plt.axes(xlim =(-50, 50), 
+                    ylim =(-50, 50))  
+    line, = axis.plot([], [], lw = 2)  
+    xdata, ydata = [], []  
+    
+
+    def animate(i):  
+        # t is a parameter which varies 
+        # with the frame number 
+        t = 0.1 * i  
+        
+        # x, y values to be plotted  
+        x = t * np.sin(t)  
+        y = t * np.cos(t)  
+        
+        # appending values to the previously  
+        # empty x and y data holders  
+        xdata.append(x)  
+        ydata.append(y)  
+
+
+
+        line.set_data(xdata, ydata)  
+        
+        return line, 
+    
+
+    def init():  
+        line.set_data([], [])  
+        return line,
+
+
+    anim = animation.FuncAnimation(fig, animate, init_func = init,  
+                                frames = 500, interval = 20, blit = True)
+    
+    plt.show()
 
 
 
 if __name__ == "__main__":
+    p = Process(target=runGraph)
+    p.start()
+
     try:   
         LOC = Local_Planner()
         LOC.main()
     except rospy.ROSInterruptException:
         print("Error")
-        
+    
