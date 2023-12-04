@@ -5,21 +5,22 @@ from math import atan2, sqrt, sin, cos, radians, atan2, dist, pi, floor
 import numpy as np
 from numpy.linalg import norm
 import random
-import matplotlib.pyplot as plt
+from matplotlib import pyplot as plt
 from human_cost import Human_cost as hc
 
 
 class SAPF:
     def __init__(self,
             # start orientation
-            start_pos = [0,0],
-            start_theta = 0, 
+            start_pos = np.array([0,0]),
+            start_theta = 0,
             # goal
-            goal = [10,10],
+            goal = np.array([10,10]),
             # obstacles
-            obstacles = [],
-            humans = [],
-            human_point_is_middle = True,
+            obstacles = np.array([]),
+            humans = np.array([]),
+            human_size = 0.3,
+            human_point_is_middle = False,
             use_human_cost = False,      # Use homemade human function?
             # SAPF parameters
             d_star_obs = 0.3,
@@ -74,6 +75,7 @@ class SAPF:
         self.alpha_th_hum = alpha_th_hum
         self.theta_max_error_hum = theta_max_error_hum
         self.human_point_is_middle = human_point_is_middle
+        self.human_size = human_size
         self.hc = hc()
         self.use_human_cost = use_human_cost
 
@@ -252,7 +254,6 @@ class SAPF:
         if debug: print("i =", i)
         time_axis = np.linspace(start=0, stop=i*self.time_step_size, num=i+1)
 
-
         if plot_path:
             figure, axes = plt.subplots()
 
@@ -263,15 +264,6 @@ class SAPF:
             axes.set_aspect(1)
             plt.xlabel("x [m]")
             plt.ylabel("y [m]")
-            # # Plot settings
-            # if lim_start[0] < lim_stop[0]:
-            #     plt.xlim(lim_start[0], lim_stop[0])
-            # else:
-            #     plt.xlim(lim_stop[0], lim_start[0])
-            # if lim_start[1] < lim_stop[1]:
-            #     plt.ylim(lim_start[1], lim_stop[1])
-            # else:
-            #     plt.ylim(lim_stop[1], lim_start[1])
 
             ### Draw obstacles ###
             for o in range(len(self.obstacles)):    
@@ -297,25 +289,21 @@ class SAPF:
                 drawing_Q_star_hum = plt.Circle( (hum_x, hum_y), self.Q_star_hum, fill = False, color=(1,0.5,0) )
                 axes.add_artist(drawing_hum)
                 plt.quiver(self.humans[h][0][0], self.humans[h][0][1], self.humans[h][1][0], self.humans[h][1][1], scale=4, scale_units="inches")
-                if plot_more:
-                    axes.add_artist(drawing_d_safe_hum)
-                    axes.add_artist(drawing_d_vort_hum)
-                    axes.add_artist(drawing_Q_star_hum)
+                # if plot_more:
+                #     axes.add_artist(drawing_d_safe_hum)
+                #     axes.add_artist(drawing_d_vort_hum)
+                #     axes.add_artist(drawing_Q_star_hum)
                 
-            
 
         
-            ### Draw goal ###
+            # ### Draw goal ###
             drawing_goal = plt.Circle( (self.goal[0], self.goal[1]), self.goal_th, fill = True, color=(0,1,0))
             axes.add_artist(drawing_goal)
-        
 
-        ### Draw potential field ###
-        # TODO: Make dynaimc with changes in plot viewer
         
         if plot_more:
             # Size limits
-            lim_start = self.start
+            lim_start = self.start  # TODO: self.start needs to be reasigned when SAPF is run from start (maybe inside reset combined specifying new start coords)
             lim_stop = self.goal*1.1
             # Nr. of arrows
             field_x_arrows = 75
@@ -588,10 +576,6 @@ class SAPF:
 
 
 
-# def create_potential_field():
-
-
-
 if __name__ == "__main__":
     # Good seeds
     #20
@@ -599,7 +583,6 @@ if __name__ == "__main__":
     #492525103  
     #36821076
     seed = random.randrange(1000000000)
-    seed = 36821076
     random.seed(seed)
     print("seed:", seed)
     
@@ -609,56 +592,25 @@ if __name__ == "__main__":
     goal = [10.0, 10.0]
 
     obstacles = []
-    for i in range(0):
+    # obstacles = [[5,5],[1,3]]
+    for i in range(10):
         obstacles.append([(random.random()-0.5)*20, (random.random()-0.5)*20])
+    
 
     humans = []
-    for i in range(1):
+    # humans = [[[8, 5], [1, 0]]]
+    for i in range(15):
         humans.append([[(random.random()-0.5)*14, (random.random()-0.5)*14], [random.random()-0.5, random.random()-0.5]])
         scale = sqrt(humans[i][1][0]**2 + humans[i][1][1]**2)        
         humans[i][1][0] = humans[i][1][0] / scale
         humans[i][1][1] = humans[i][1][1] / scale
     
-    # humans = [[[8, 5], [1, 0]]]
+    
         
+    sapf = SAPF()
+    sapf.update_robot_state(x=start[0], y=start[1], theta=start_theta)
+    sapf.update_map(obstacles=np.array(obstacles), humans=np.array(humans), goal=np.array(goal))
 
-    sapf = SAPF (
-        # # SAPF obstacle parameters
-        # d_star_obs=0.3,
-        # Q_star_obs=1.0,
-        # d_safe_obs=0.2,
-        # d_vort_obs=0.35,
-        # zeta_obs=2.1547,
-        # eta_obs=0.732,
-        # alpha_th_obs=radians(5),
-        # theta_max_error_obs=radians(135),
-        # # SAPF human parameters
-        # d_star_hum=2.0,  # Remove human version
-        # Q_star_hum=5.0,
-        # d_safe_hum=0.2,
-        # d_vort_hum=2.0,
-        # zeta_hum=0.3,   # Remove human version
-        # eta_hum=3.8,
-        # alpha_th_hum=radians(5),
-        # theta_max_error_hum=radians(135),
-        # # Robot limits
-        # robot_size=0.55,
-        # v_max=1.5,
-        # lin_a_max=1.0,
-        # omega_max=1.0,
-        # rot_a_max=1.0,
-        # # Start
-        # start_pos=np.array(start),
-        # start_theta=start_theta,
-        # # Goal
-        # goal=np.array(goal),
-        # # Obstacles
-        # obstacles=np.array(obstacles),
-        # # Humans
-        # humans=np.array(humans),
-        # human_point_is_middle=True,
-        # use_human_cost = False,       # Use homemade human function?
-    )
 
     # Single test
     if True:
