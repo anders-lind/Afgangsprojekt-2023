@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import math
 
 
 
@@ -92,6 +93,61 @@ def rep_graph():
     plt.show()
 
 
+def switch_graph():
+    Q_star = 4
+    d_vort = 2
+    d_safe = 1
+    D_alpha = 1
+
+    y_rep = []
+    y_vor = []
+    d_O_i_ = []
+    d_O_i = 0
+    while d_O_i < Q_star:
+        d_rel_O_i = None
+        
+        # Calc d_rel
+        if d_O_i < d_safe:
+            d_rel_O_i = 0
+        elif d_O_i > 2*d_vort - d_safe:
+            d_rel_O_i = 1
+        else:
+            d_rel_O_i = (d_O_i - d_safe)/(2*(d_vort - d_safe))
+
+        # Calc gamma
+        if d_rel_O_i <= 0.5:
+            gamma = math.pi*D_alpha*d_rel_O_i
+        else:
+            gamma = math.pi*D_alpha*(1-d_rel_O_i)
+
+        y_rep.append(1-math.sin(gamma))
+        y_vor.append(math.sin(gamma))
+        d_O_i_.append(d_O_i)
+
+        d_O_i += 0.01
+    
+
+    # Plot settings
+    plt.rcParams.update({'font.size': 22})
+    fig = plt.figure()
+    ax = fig.add_subplot()
+    
+
+    plt.plot(d_O_i_,y_vor, label="Vortex")
+    plt.plot(d_O_i_,y_rep, label="Repulsive")
+    
+    plt.xticks(ticks=[0, 1, 2, 3], labels=["0", "$d_{safe}$", "$d_{vort}$", "$2 d_{vort}-d_{safe}$"])
+    plt.yticks(ticks=[0.0,0.5,1.0], labels=["0%", "50%", "100%"])
+    plt.legend()
+    plt.title("Switching function")
+    plt.xlabel("Distance from obstacle")
+    plt.ylabel("Influence")
+    
+    plt.show()
+
+
 if __name__ == "__main__":
-    att_graph()
-    rep_graph()
+    # att_graph()
+    # rep_graph()
+    switch_graph()
+    pass
