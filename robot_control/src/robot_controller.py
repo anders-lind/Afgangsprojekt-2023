@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from multiprocessing import Process
 
+from mir import mir as MIR
 from dynamic_window_approach import DWA
 from safe_artificial_potential_fields import SAPF
 
@@ -220,13 +221,19 @@ class Local_Planner:
             # self.rate.sleep()
 
         self.show_log()
+    
+
+    def test_robot_movement():
+        mir = MIR()
+        mir.move_relative(dist=0.1, angle=0)
 
 
 
 if __name__ == "__main__":
     try:   
         LOC = Local_Planner()
-        LOC.main()
+        # LOC.main()
+        LOC.test_robot_movement()
     except rospy.ROSInterruptException:
         print("Error")
     
