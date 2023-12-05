@@ -45,6 +45,10 @@ class Local_Planner:
         self.y_log = []
         self.v_log = []
         self.w_log = []
+
+    
+    def get_pos(self):
+        return self.x, self.y
                   
         
     
@@ -134,7 +138,7 @@ class Local_Planner:
 
             
             
-    def move_robot(self, v, w, simulation = False):
+    def move_robot(self, v, w, simulation):
         # Simulation of movement
         if simulation:
                 self.theta = self.theta + w * (self.dt)
@@ -173,12 +177,23 @@ class Local_Planner:
         self.obstacles = [[5,5], [6,5]]
         self.max_i = 10000
 
+        plt.ion()
+        fig = plt.figure()
+        
+
         i = 0
         while not rospy.is_shutdown():
-            print(i)
+            # print(i)
             self.v, self.w = self.planner(use_sapf=True)
             self.move_robot(self.v, self.w, simulation=True)
             self.log()
+
+            print("self.pos:", self.get_pos())
+
+            fig.clear()
+            plt.plot(self.x, self.y, marker='o')
+            plt.draw()
+            plt.pause(0.00001)
 
 
             # If at goal
@@ -192,7 +207,7 @@ class Local_Planner:
                 print("Max iterations reached")
                 break
 
-            self.rate.sleep()
+            # self.rate.sleep()
 
         # self.show_log()
 
@@ -202,11 +217,13 @@ def runGraph():
     fig = plt.figure()
     axis = plt.axes(xlim =(-50, 50), 
                     ylim =(-50, 50))  
-    line, = axis.plot([], [], lw = 2)  
+    line, = axis.plot([], [], lw = 2, marker='o')  
     xdata, ydata = [], []  
     
 
-    def animate(i):  
+    def animate(i):
+        print("Animate:", LOC.get_pos())
+        
         # t is a parameter which varies 
         # with the frame number 
         t = 0.1 * i  
@@ -216,9 +233,9 @@ def runGraph():
         y = t * np.cos(t)  
         
         # appending values to the previously  
-        # empty x and y data holders  
-        xdata.append(x)  
-        ydata.append(y)  
+        # empty x and y data holders 
+        xdata.append(LOC.x)  
+        ydata.append(LOC.y)  
 
 
 
@@ -233,18 +250,19 @@ def runGraph():
 
 
     anim = animation.FuncAnimation(fig, animate, init_func = init,  
-                                frames = 500, interval = 20, blit = True)
+                                #frames = 500,
+                                interval = 200, blit = True)
     
     plt.show()
 
 
 
-if __name__ == "__main__":
-    p = Process(target=runGraph)
-    p.start()
+LOC = Local_Planner()
 
+if __name__ == "__main__":
     try:   
-        LOC = Local_Planner()
+        # p = Process(target=runGraph)
+        # p.start()
         LOC.main()
     except rospy.ROSInterruptException:
         print("Error")
