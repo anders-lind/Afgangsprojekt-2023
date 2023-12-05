@@ -223,7 +223,7 @@ class Local_Planner:
         self.show_log()
     
 
-    def test_robot_movement():
+    def test_robot_movement(self):
         mir = MIR()
         mir.move_relative(dist=0.1, angle=0)
 
