@@ -18,34 +18,34 @@ class Local_Planner:
     def __init__(self, rate = 10):
         rospy.init_node('obstacle_detector', anonymous=True)
         
-        self.obstacles = []
-        self.humans = []
+        # self.obstacles = []
+        # self.humans = []
          
-        self.obstacle_subscriber = rospy.Subscriber('/obstacles_without_people',PointCloud, self.update_obstacles_callback)
-        self.human_subscriber = rospy.Subscriber('/people',PoseArray, self.update_humans_callback)
+        # self.obstacle_subscriber = rospy.Subscriber('/obstacles_without_people',PointCloud, self.update_obstacles_callback)
+        # self.human_subscriber = rospy.Subscriber('/people',PoseArray, self.update_humans_callback)
         
         
-        self.x = 0
-        self.y = 0
-        self.theta = 0
+        # self.x = 0
+        # self.y = 0
+        # self.theta = 0
         
-        self.v = 0
-        self.w = 0
+        # self.v = 0
+        # self.w = 0
         
-        self.velocity_subscriber = rospy.Subscriber('/cmd_vel',TwistStamped, self.update_velocities_callback)
-        self.pose_subscriber = rospy.Subscriber('/robot_pose',Pose, self.update_pose_callback)
+        # self.velocity_subscriber = rospy.Subscriber('/cmd_vel',TwistStamped, self.update_velocities_callback)
+        # self.pose_subscriber = rospy.Subscriber('/robot_pose',Pose, self.update_pose_callback)
         
-        self.dt = rate/1000.0
-        self.rate = rospy.Rate(rate)
+        # self.dt = rate/1000.0
+        # self.rate = rospy.Rate(rate)
         
-        self.dwa = DWA()
-        self.sapf = SAPF()
+        # self.dwa = DWA()
+        # self.sapf = SAPF()
 
-        # Logs
-        self.x_log = []
-        self.y_log = []
-        self.v_log = []
-        self.w_log = []
+        # # Logs
+        # self.x_log = []
+        # self.y_log = []
+        # self.v_log = []
+        # self.w_log = []
 
     
     def get_pos(self):
@@ -225,7 +225,8 @@ class Local_Planner:
 
     def test_robot_movement(self):
         mir = MIR()
-        mir.move_relative(dist=0.1, angle=0)
+        mir.send_goal(x=1, y=1, theta=0)
+        # mir.move_relative(dist=0.1, angle=0)
 
 
 
