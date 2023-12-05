@@ -114,6 +114,8 @@ class Local_Planner:
 
     def show_log(self, v=False, w=False):
         # plot pos and goal and obstacles
+        print("print")
+        plt.figure()
         plt.title("pos")
         plt.grid()
         plt.plot(self.goal[0], self.goal[1], marker='o')
@@ -134,6 +136,18 @@ class Local_Planner:
             plt.grid()
             plt.title("w")
             plt.plot(self.w_log)
+
+        plt.show()
+
+
+    def continuois_plot(self, i: int, fig):
+        if (i % 100 == 0):
+            fig.clear()
+            plt.plot(self.x_log, self.y_log, color="b")
+            plt.plot(self.x, self.y, marker='o', color="r")
+            plt.plot(self.goal[0], self.goal[1], marker="o", color="g")
+            plt.draw()
+            plt.pause(0.0001)
 
 
             
@@ -173,27 +187,23 @@ class Local_Planner:
 
     
     def main(self):
+        # Init values
         self.goal = [10,10]
         self.obstacles = [[5,5], [6,5]]
         self.max_i = 10000
-
-        plt.ion()
+        i = 0
         fig = plt.figure()
         
 
-        i = 0
+        
         while not rospy.is_shutdown():
-            # print(i)
             self.v, self.w = self.planner(use_sapf=True)
             self.move_robot(self.v, self.w, simulation=True)
             self.log()
 
-            print("self.pos:", self.get_pos())
-
-            fig.clear()
-            plt.plot(self.x, self.y, marker='o')
-            plt.draw()
-            plt.pause(0.00001)
+            # Continuois plot
+            self.continuois_plot(i, fig)
+            
 
 
             # If at goal
@@ -209,60 +219,13 @@ class Local_Planner:
 
             # self.rate.sleep()
 
-        # self.show_log()
+        self.show_log()
 
 
-
-def runGraph():
-    fig = plt.figure()
-    axis = plt.axes(xlim =(-50, 50), 
-                    ylim =(-50, 50))  
-    line, = axis.plot([], [], lw = 2, marker='o')  
-    xdata, ydata = [], []  
-    
-
-    def animate(i):
-        print("Animate:", LOC.get_pos())
-        
-        # t is a parameter which varies 
-        # with the frame number 
-        t = 0.1 * i  
-        
-        # x, y values to be plotted  
-        x = t * np.sin(t)  
-        y = t * np.cos(t)  
-        
-        # appending values to the previously  
-        # empty x and y data holders 
-        xdata.append(LOC.x)  
-        ydata.append(LOC.y)  
-
-
-
-        line.set_data(xdata, ydata)  
-        
-        return line, 
-    
-
-    def init():  
-        line.set_data([], [])  
-        return line,
-
-
-    anim = animation.FuncAnimation(fig, animate, init_func = init,  
-                                #frames = 500,
-                                interval = 200, blit = True)
-    
-    plt.show()
-
-
-
-LOC = Local_Planner()
 
 if __name__ == "__main__":
     try:   
-        # p = Process(target=runGraph)
-        # p.start()
+        LOC = Local_Planner()
         LOC.main()
     except rospy.ROSInterruptException:
         print("Error")
