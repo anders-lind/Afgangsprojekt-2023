@@ -1,0 +1,4 @@
+<launch>
+    <node pkg="facilitycobot_demo" type="test_UR.py" name="test_ur_pose">
+    </node>
+</launch>

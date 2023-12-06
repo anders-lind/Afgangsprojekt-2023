@@ -33,12 +33,7 @@ class DWA:
         self.dT = dT
         self.N = int(floor(self.simT/self.dT))
         
-        # self.obj_alpha = -2
-        # self.obj_beta = 1
-        # self.obj_gamma = 0.5 
-        # self.obj_eta = 1.0
-        
-        self.obj_heading =   0.06 #0.645 # 0.15
+        self.obj_heading =   0.06
         self.obj_speed = 1
         self.obj_obstacle = 1
         
