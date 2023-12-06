@@ -1,0 +1,4 @@
+<launch>
+    <node pkg="facilitycobot_demo" type="test_mir_navigation.py" name="test_mir_navigation">
+    </node>
+</launch>
