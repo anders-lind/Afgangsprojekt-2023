@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
 import math
 
@@ -146,8 +147,100 @@ def switch_graph():
     plt.show()
 
 
+
+def overview_graph():
+    d_safe = 1
+    d_vort = 2
+    Q_star = 3
+
+    goal_color = (0, 0.8, 0)
+    rep_color = (255/255,130/255,19/255)
+    vor_color = (44/255,126/255,184/255)
+
+    obs = [0.0,0.0]
+    
+    goal = [4,3]
+    robot0 = [obs[0]+2.5*math.cos(math.pi/2.5), obs[1]+2.5*math.sin(math.pi/2.5)]
+    robot1 = [d_safe+0.2, 0.2]
+    robot2 = [2*d_vort,0.0]
+    robots = [robot0, robot1, robot2]
+
+    plt.rcParams.update({'font.size': 15})
+    fig = plt.figure()
+    ax = fig.add_subplot()
+    ax.set_aspect(1)
+    
+    # Object
+    ax.plot(obs[0], obs[1], marker='o', color=(0,0,0), label="Obstacle")
+
+    # Circles
+    safe = plt.Circle( (obs[0], obs[1]), d_safe, fill = False, color=rep_color )
+    vort = plt.Circle( (obs[0], obs[1]), d_vort, fill = False, color=vor_color )
+    star = plt.Circle( (obs[0], obs[1]), Q_star, fill = False, color=rep_color )
+    ax.add_artist(safe)
+    ax.add_artist(vort)
+    ax.add_artist(star)
+
+    # Goal
+    ax.plot(goal[0], goal[1], marker = "o", linestyle=None, color=goal_color, label="Goal")
+    
+    for i in range(len(robots)):
+        robot = robots[i]
+
+        # Robot
+        ax.plot(robot[0], robot[1], marker='o', color=(1,0,0), label="Robot")
+
+        # Goal arrow
+        arrow_dir = 1.2 * (np.array(goal) - np.array(robot)) / (math.dist(goal, robot))
+        ax.arrow(robot[0], robot[1], arrow_dir[0], arrow_dir[1], head_width=0.15, head_length=0.12, color=goal_color, linewidth=2)
+        if i == 2:
+            ax.text(robot[0] + arrow_dir[0] +0.0, robot[1] + arrow_dir[1]+0.2, s="$U_{att}$")
+        else:
+            ax.text(robot[0] + arrow_dir[0] +0.1, robot[1] + arrow_dir[1]+0.1, s="$U_{att}$")
+        
+        # Repulsive arrow
+        if i == 0 or i == 1:
+            arrow_dir = 1.2 * (np.array(robot) - np.array(obs)) / (math.dist(obs, robot))
+            ax.arrow(robot[0], robot[1], arrow_dir[0], arrow_dir[1], head_width=0.15, head_length=0.12, color=rep_color, linewidth=2)
+            ax.text(robot[0] + arrow_dir[0] +0.1, robot[1] + arrow_dir[1]+0.1, s="$U_{rep}$")
+        
+        # Vortex arrow
+        if i == 0 or i == 1:
+            if i == 1:
+                arrow_dir = 0.4 * (np.array(obs) - np.array(robot)) / (math.dist(obs, robot))
+            else:
+                arrow_dir = 1.2 * (np.array(obs) - np.array(robot)) / (math.dist(obs, robot))
+            ax.arrow(robot[0], robot[1], -arrow_dir[1], arrow_dir[0], head_width=0.15, head_length=0.12, color=vor_color, linewidth=2)
+            if i == 0:
+                ax.text(robot[0] - arrow_dir[1] + 0.0, robot[1] + arrow_dir[0]-0.4, s="$U_{vort}$")
+            else:
+                ax.text(robot[0] - arrow_dir[1] + 0.1, robot[1] + arrow_dir[0]+0.1, s="$U_{vort}$")
+
+
+    limit = 4.5
+    plt.xlim(-0.5, limit)
+    plt.ylim(-0.5, limit)
+
+    plt.yticks(ticks=[d_safe, d_vort, Q_star], labels=["$d_{safe}$", "$d_{vort}$", "$2d_{vort}-d_{safe}$"])
+    plt.xticks([], [])
+
+    matplotlib.rcParams['legend.handlelength'] = 0
+    matplotlib.rcParams['legend.numpoints'] = 1
+
+    # https://stackoverflow.com/questions/13588920/stop-matplotlib-repeating-labels-in-legend
+    handles, labels = plt.gca().get_legend_handles_labels()
+    by_label = dict(zip(labels, handles))
+    plt.legend(by_label.values(), by_label.keys(), bbox_to_anchor=(1.2, 1.1), framealpha=1)
+
+
+    plt.show()
+
+
+
+
 if __name__ == "__main__":
     # att_graph()
     # rep_graph()
-    switch_graph()
+    # switch_graph()
+    # overview_graph()
     pass

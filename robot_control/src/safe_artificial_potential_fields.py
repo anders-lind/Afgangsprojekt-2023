@@ -96,7 +96,7 @@ class SAPF:
         self.crash_dist = crash_dist
 
         ### Start configruation ###
-        self.start = start_pos.copy()   # Required, otherwise memory leek
+        self.start_pos = start_pos.copy()   # Required, otherwise memory leek
         self.pos = start_pos
         self.start_theta = start_theta
         self.theta = start_theta
@@ -112,11 +112,33 @@ class SAPF:
         
 
 
-    def reset(self):
-        self.pos = self.start
-        self.theta = self.start_theta
+    def init(self, new_start_pos: np.array([float,float]) = None, new_start_theta: float = None, new_obstacles: np.array([[float,float],[float,float]]) = None, new_goal: np.array([float,float]) = None):
         self.omega = 0.0
         self.vel = 0.0
+        
+        # Start pos
+        if new_start_pos == None:
+            self.pos = self.start_pos
+        else:
+            self.start_pos = new_start_pos
+            self.pos = new_start_pos
+        
+        # Start theta
+        if new_start_theta == None:
+            self.theta = self.start_theta
+        else:
+            self.start_theta = new_start_theta
+            self.pos = new_start_theta
+        
+        # Obstacles
+        if new_obstacles != None:
+            self.obstacles = new_obstacles
+
+        # Goal
+        if new_goal != None:
+            self.goal = new_goal
+        
+        
 
     
     def update_map(self, obstacles: [float, float], humans: [[[float, float], [float, float]]], goal=[float, float]):
@@ -193,7 +215,7 @@ class SAPF:
             vel_mag[0] = norm(self.vel)
         
         if debug:
-            print("Start pos:", self.start)
+            print("Start pos:", self.start_pos)
             print("Goal:     ", self.goal)
 
 
@@ -303,7 +325,7 @@ class SAPF:
         
         if plot_more:
             # Size limits
-            lim_start = self.start  # TODO: self.start needs to be reasigned when SAPF is run from start (maybe inside reset combined specifying new start coords)
+            lim_start = self.start_pos  # TODO: self.start needs to be reasigned when SAPF is run from start (maybe inside reset combined specifying new start coords)
             lim_stop = self.goal*1.1
             # Nr. of arrows
             field_x_arrows = 75
@@ -608,6 +630,7 @@ if __name__ == "__main__":
     
         
     sapf = SAPF()
+    sapf.init()
     sapf.update_robot_state(x=start[0], y=start[1], theta=start_theta)
     sapf.update_map(obstacles=np.array(obstacles), humans=np.array(humans), goal=np.array(goal))
 
