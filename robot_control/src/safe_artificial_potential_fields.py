@@ -21,21 +21,22 @@ class SAPF:
             humans = np.array([]),
             use_human_cost = True,      # Use homemade human function?
             # SAPF parameters
-            d_goal_star = 1.0,   #0.3
-            zeta   = 1.0,  #2.1547
-            eta    = 1.0,    #0.732
-            d_safe = 1.25,   #0.2
-            d_vort = 1.75,  #0.35
-            d_Oi_star = 3.0,   #1.0
-            alpha_th = radians(5),  #5
+            d_goal_star = 0.3,
+            zeta        = 2.1547,
+            eta         = 1.732,
+            d_Oi_star   = 1.0,
+            d_safe      = 0.2,
+            d_vort      = 0.35,
+            Kp_omega    = 1.6,
+            k_hum       = 2.0,
+            alpha_th    = radians(0),  #5
             theta_max_error = radians(135), #135
             # Human parameters
-            k_hum = 1.0,
-            d_safe_hum = 0.2,
-            d_vort_hum = 2.0,
-            eta_hum = 3.8,
-            Q_star_hum = 5.0,
-            alpha_th_hum = radians(5),
+            d_safe_hum  = 0.25,
+            d_vort_hum  = 0.75,
+            eta_hum     = 3.0,
+            Q_star_hum  = 5.0,
+            alpha_th_hum= radians(5),
             theta_max_error_hum = radians(135),
             # robot
             v_max     = 1.5,
@@ -43,11 +44,10 @@ class SAPF:
             lin_a_max = 1.0,
             rot_a_max = 1.0,
             # Simulation #
-            Kp_a     = 1.0, #0.2
-            Kp_omega = 1.0, #1.6
+            Kp_a     = 0.2, #0.2
             time_step_size = 0.1,
             goal_th = 0.6,
-            max_iterations = 10000,
+            max_iterations = 3000,
             noise_mag = 0.001,
             crash_dist = 0.10
         ):
@@ -219,6 +219,10 @@ class SAPF:
         ### Simulate movement ###
         i = 0
         while i < self.max_iterations and norm(self.goal - self.pos) > self.goal_th:
+            
+            if hit_human or hit_obstacle or reached_goal:
+                break
+
             i += 1
             
             # Calculate potentials and move robot
@@ -499,6 +503,7 @@ class SAPF:
 
         # For every obstacle
         for i in range(len(self.obstacles)):
+        # for i in range(0):
             # Distance to object
             d_O_i = dist(pos, self.obstacles[i])
             if d_O_i <= 0: d_O_i = 0.0000001
@@ -542,8 +547,8 @@ class SAPF:
         
 
         # For every human
-        # for i in range(len(self.humans)):
-        for i in range(0):
+        for i in range(len(self.humans)):
+        # for i in range(0):
             d_O_i = dist(pos, self.humans[i][0])
 
             if d_O_i <= 0:
@@ -621,19 +626,17 @@ if __name__ == "__main__":
     start_theta = atan2(goal[1] - start[1], goal[0] - start[0])
 
     obstacles = []
-    # obstacles = [[5,5],[1,3]]
-    for i in range(0):
-        obstacles.append([(random.random()-0.5)*20, (random.random()-0.5)*20])
+    # for h in range(0):
+    #     obstacles.append([(random.random()-0.5)*20, (random.random()-0.5)*20])
     obstacles = [[3.4620780011110384, -6.022094011188084], [-4.009974079787394, -0.6485367921078513], [-7.36096762363364, 7.216330086697337], [5.608744401297672, 1.850811724550809], [3.8458299368470623, 3.357341808539937], [-4.778073368033663, -5.501141866315759], [4.723132838747985, 0.3845932731672015], [-2.229574295791508, 2.036716162637534], [4.171285482646521, 3.7728185792673266], [-6.218284379822736, 5.97907738914949], [4.154923208102396, 1.8794276841810884], [-2.9544228765998177, 0.4480890828980719], [0.8345912954350894, 0.9778563383034644], [-6.743270413377292, 0.4883006991849541], [-5.667493154441951, -7.785785428113856], [-0.35529269417974874, -1.6953325996094204], [-6.258261636260494, -7.750274910776324], [5.673472479630764, -1.7661319837998537], [-1.8415642436138828, 6.773339898825298], [3.224003003417552, 3.289856053257889]]
     obstacles = np.array(obstacles)
 
     humans = []
-    # humans = [[[8, 5], [1, 0]]]
-    for i in range(0):
-        humans.append([[(random.random()-0.5)*14, (random.random()-0.5)*14], [random.random()-0.5, random.random()-0.5]])
-        scale = sqrt(humans[i][1][0]**2 + humans[i][1][1]**2)        
-        humans[i][1][0] = humans[i][1][0] / scale
-        humans[i][1][1] = humans[i][1][1] / scale
+    # for h in range(0):
+    #     humans.append([[(random.random()-0.5)*14, (random.random()-0.5)*14], [random.random()-0.5, random.random()-0.5]])
+    #     scale = sqrt(humans[h][1][0]**2 + humans[h][1][1]**2)        
+    #     humans[h][1][0] = humans[h][1][0] / scale
+    #     humans[h][1][1] = humans[h][1][1] / scale
     humans = [[[-7.628100894388067, 3.4154098195069467], [0.8049132248720982, 0.5933925348586712]], [[-5.466481775607566, -6.896318233696028], [-0.010661367814394045, -0.9999431660031114]], [[-3.312477282810234, -2.0009274781740807], [-0.6587384015591221, -0.7523720610916734]], [[3.5389702000507945, 0.05233796970694371], [0.9495008281317766, -0.31376452536427735]], [[4.927280407180085, 5.4040645428380785], [-0.41194351355772246, -0.9112093840812432]], [[-2.6019992670325376, -6.628660260019831], [-0.9304019911509825, 0.3665407683495615]], [[3.8934643935681468, -3.7715344243867435], [0.8467107583147311, -0.5320534670069291]], [[-4.49657147274171, -2.0257417935565734], [0.9215614591575776, 0.3882325037852399]], [[7.054064494277485, -6.948301300913004], [-0.9998381819074005, -0.01798916340755726]], [[6.089431096668327, -3.785125599146481], [0.9005975797225737, 0.43465388459996807]]]
     humans = np.array(humans)
     
@@ -641,41 +644,61 @@ if __name__ == "__main__":
     sapf = SAPF()
     sapf.init(new_start_pos=start, new_start_theta=start_theta, new_goal=goal, new_obstacles=obstacles, new_humans=humans)
 
-    # Single test
-    result = sapf.simulate_path(plot_path=True, plot_more=False, debug=True)
-    print(result)
+
+    # # Single test
+    # result = sapf.simulate_path(plot_path=True, plot_more=False, debug=True)
+    # print(result)
 
     
     # Multiple test
-    if False:
+    if True:
         time = []
         goals = 0
-        crashes = 0
-        fails = 0
-        for t in range(20):
-            print("test:", t)
+        crashes_o = 0
+        crashes_h = 0
+        max_i = 0
+
+        show_path = False
+        for t in range(1000):
+            print("test:", t),
+
+            # Start and goal
+            goal = np.array([(random.random()-0.5)*20, (random.random()-0.5)*20])
+            start = np.array([(random.random()-0.5)*20, (random.random()-0.5)*20])
+            start_theta = (random.random()-0.5)*2*pi
+            
             # Obstacles
             obstacles = []
-            for o in range(9):
-                obstacles.append([(random.random()-0.5)*14, (random.random()-0.5)*14])
-            sapf_humans.obstacles=np.array(obstacles)
+            for o in range(20):
+                obstacles.append([(random.random()-0.5)*20, (random.random()-0.5)*20    ])
             sapf.obstacles=np.array(obstacles)
-            sapf.reset()
-            sapf_humans.reset()
+            
+            # Humans
+            humans = []
+            for h in range(10):
+                humans.append([[(random.random()-0.5)*20, (random.random()-0.5)*20], [random.random()-0.5, random.random()-0.5]])
+                scale = sqrt(humans[h][1][0]**2 + humans[h][1][1]**2)        
+                humans[h][1][0] = humans[h][1][0] / scale
+                humans[h][1][1] = humans[h][1][1] / scale
+            sapf.humans=np.array(humans)
+            
             
             # Simulate
-            # g,c,t = sapf_humans.simulate_path(debug=False, plot_path=True, plot_pot_field=False, plot_pots=False, plot_state=False)
-            g,o,h,t = sapf.simulate_path(debug=False, plot_path=True, plot_pot_field=False, plot_pots=False, plot_state=False)
-            print(g,o,h,t)
-            if o or h:
-                crashes += 1
-            elif g:
+            sapf.init(new_goal=goal, new_start_pos=start, new_start_theta=start_theta, new_obstacles=obstacles, new_humans=humans)
+            g,o,h,t = sapf.simulate_path(plot_path=show_path)
+            print("g,o,h,t:", g,o,h,t)
+            if o:
+                crashes_o += 1
+            if h:
+                crashes_h += 1
+            if g:
                 goals += 1
                 time.append(t)
-            else:
-                fails += 1
+            if not (o or h or g):
+                max_i += 1
             
-        print("goals:", goals)
-        print("crashes:", crashes)
-        print("fails:", fails)
-        print("time average:", np.average(time))
+        print("Goals:", goals)
+        print("Crashes obs:", crashes_o)
+        print("Crashes hum:", crashes_h)
+        print("Not goal reached:", max_i)
+        print("Time average:", np.average(time))

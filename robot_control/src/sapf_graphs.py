@@ -154,8 +154,9 @@ def overview_graph():
     Q_star = 3
 
     goal_color = (0, 0.8, 0)
-    rep_color = (255/255,130/255,19/255)
+    rep_color = (255/255,190/255,99/255)
     vor_color = (44/255,126/255,184/255)
+    att_color = (0.0,0.4,0)
 
     obs = [0.0,0.0]
     
@@ -171,7 +172,7 @@ def overview_graph():
     ax.set_aspect(1)
     
     # Object
-    ax.plot(obs[0], obs[1], marker='o', color=(0,0,0), label="Obstacle")
+    ax.plot(obs[0], obs[1], marker='o', color=(1,0,0), label="Obstacle")
 
     # Circles
     safe = plt.Circle( (obs[0], obs[1]), d_safe, fill = False, color=rep_color )
@@ -188,11 +189,11 @@ def overview_graph():
         robot = robots[i]
 
         # Robot
-        ax.plot(robot[0], robot[1], marker='o', color=(1,0,0), label="Robot")
+        ax.plot(robot[0], robot[1], marker='o', color=(0,0,0), label="Robot")
 
         # Goal arrow
         arrow_dir = 1.2 * (np.array(goal) - np.array(robot)) / (math.dist(goal, robot))
-        ax.arrow(robot[0], robot[1], arrow_dir[0], arrow_dir[1], head_width=0.15, head_length=0.12, color=goal_color, linewidth=2)
+        ax.arrow(robot[0], robot[1], arrow_dir[0], arrow_dir[1], head_width=0.15, head_length=0.12, color=att_color, linewidth=2)
         if i == 2:
             ax.text(robot[0] + arrow_dir[0] +0.0, robot[1] + arrow_dir[1]+0.2, s="$U_{att}$")
         else:
