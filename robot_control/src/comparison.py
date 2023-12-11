@@ -2,10 +2,41 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import random
-from dynamic_window_approach_copy import DWA
+from dynamic_window_approach import DWA
 from math import atan2, sqrt, sin, cos, radians, atan2, dist, pi, floor
 from numpy.linalg import norm
 from safe_artificial_potential_fields import SAPF
+
+def determine_path_length(x, y):
+    path_length = 0
+    for i in range(len(x)):
+        path_length += sqrt(x[i]**2 + y[i]**2)
+    return path_length
+
+def determine_total_duration(t):
+    return t[-1]
+
+def closest_distance_to_an_object(x, y, obstacles):
+    min_dist = 10000
+    for i in range(len(obstacles)):
+        for j in range(len(x)):
+            distance = sqrt((obstacles[i][0] - x[j])**2 + (obstacles[i][1] - y[j])**2)
+            if distance < min_dist:
+                min_dist = distance
+    
+    return min_dist
+
+def closest_distance_to_a_human(x,y,humans):
+    min_dist = 10000
+    for i in range(len(humans)):
+        for j in range(len(x)):
+            distance = sqrt((humans[i][0][0] - x[j])**2 + (humans[i][0][1] - y[j])**2)
+            if distance < min_dist:
+                min_dist = distance
+    
+    return min_dist
+    
+
 
 def simulate(num_simulations):
     
@@ -34,12 +65,11 @@ def simulate(num_simulations):
             ystart = (random.random()- 0.5)*map_width*0.95 + map_y_cent  
             
             xgoal = (random.random()- 0.5)*map_width*0.95 + map_x_cent 
-            ygoal = (random.random()- 0.5)*map_width*0.9 + map_y_cent
+            ygoal = (random.random()- 0.5)*map_width*0.95 + map_y_cent
         
         thetastart = atan2((ygoal - ystart), (xgoal-xstart))
-        
-        
-        
+
+
         obstacles = []
         people = []
 
@@ -95,6 +125,8 @@ def simulate(num_simulations):
         dwa_got_to_goal = True
         if dwa_iter == max_iterations:
             dwa_got_to_goal = False
+        
+        
         
         # sapf = SAPF()
         
