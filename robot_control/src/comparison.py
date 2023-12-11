@@ -6,6 +6,7 @@ from dynamic_window_approach import DWA
 from math import atan2, sqrt, sin, cos, radians, atan2, dist, pi, floor
 from numpy.linalg import norm
 from safe_artificial_potential_fields import SAPF
+from human_cost import Human_cost as HC
 
 def determine_path_length(x, y):
     path_length = 0
@@ -13,8 +14,10 @@ def determine_path_length(x, y):
         path_length += sqrt(x[i]**2 + y[i]**2)
     return path_length
 
+
 def determine_total_duration(t):
     return t[-1]
+
 
 def closest_distance_to_an_object(x, y, obstacles):
     min_dist = 10000
@@ -26,6 +29,7 @@ def closest_distance_to_an_object(x, y, obstacles):
     
     return min_dist
 
+
 def closest_distance_to_a_human(x,y,humans):
     min_dist = 10000
     for i in range(len(humans)):
@@ -35,11 +39,31 @@ def closest_distance_to_a_human(x,y,humans):
                 min_dist = distance
     
     return min_dist
+
+
+def time_in_social_shapes(x, y, humans, dT):
     
-def time_in_social_shapes(x y, humans):
-    pass
+    hc = HC()
+    time_in_intimate = 0
+    time_in_personal = 0
+    time_in_social = 0
+    
+    for i in range(len(humans)):
+        for j in range(len(x)):
+            if dist((x[j], y[j]), (humans[i][0][0], humans[i][0][1])) < hc.intimate:
+                time_in_intimate += dT
+            elif dist((x[j], y[j]), (humans[i][0][0], humans[i][0][1])) < hc.personal:
+                time_in_personal += dT
+            elif dist((x[j], y[j]), (humans[i][0][0], humans[i][0][1])) < hc.social:
+                time_in_social += dT
+    
+    return time_in_intimate, time_in_personal, time_in_social
 
 
+def completion(iter, max_iter):
+    if iter >= max_iter:
+        return False
+    return True
 
 
 def simulate(num_simulations):
@@ -55,6 +79,13 @@ def simulate(num_simulations):
     max_iterations = 500
     goal_th = 0.6
     
+    
+    dwa_stats = {}
+    sapf_stats = {}
+    
+    
+    dwa_breaks = 0
+    sapf_breaks = 0
     
     for i in range(num_simulations):
         
@@ -124,12 +155,27 @@ def simulate(num_simulations):
             if dist([poses[1][0], poses[1][1]], [xgoal, ygoal]) < goal_th:
                 break    
         
-        print(dwa_iter)
+        complete = completion(dwa_iter, max_iterations)
         
-        dwa_got_to_goal = True
-        if dwa_iter == max_iterations:
-            dwa_got_to_goal = False
+        if complete:
+            
+            time_in_intimate, time_in_personal, time_in_social = time_in_social_shapes(dwa_x, dwa_y, people)
+            
+            path_length = determine_path_length(dwa_x, dwa_y)
+            
+            total_duration = determine_total_duration(dwa_time)
+            
+            closest_dist_human = closest_distance_to_a_human(dwa_x, dwa_y, people)
+            
+            closest_dist_obstacle = closest_distance_to_an_object(dwa_x, dwa_y, obstacles)
+            
+            dwa_stats[i] = [path_length, total_duration, closest_dist_human, closest_dist_obstacle, time_in_intimate, time_in_personal, time_in_social]
+        else:
+            dwa_breaks += 1
         
+    
+    print(dwa_stats)
+    print(dwa_breaks)
         
         
         # sapf = SAPF()
