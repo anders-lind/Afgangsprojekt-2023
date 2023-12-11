@@ -7,6 +7,47 @@ from math import atan2, sqrt, sin, cos, radians, atan2, dist, pi, floor
 from numpy.linalg import norm
 from safe_artificial_potential_fields import SAPF
 from human_cost import Human_cost as HC
+import csv
+
+
+def plot_map_and_save_figure(dwa_x, dwa_y, sapf_x, sapf_y, obstacles, humans, start, goal, x_cent, y_cent, map_width, iter, goalth):
+    # Plot settings
+    figure, axes = plt.subplots()
+    plt.xlim([x_cent - 0.5*map_width, x_cent + map_width*0.5])
+    plt.ylim([y_cent - 0.5*map_width, y_cent + map_width*0.5])
+    axes.set_aspect(1)
+    plt.title("Map")
+    plt.grid()
+    plt.xlabel("x [m]")
+    plt.ylabel("y [m]")
+    
+    ### Plot path ###
+    plt.plot(dwa_x,dwa_y, label = "DWA")
+    plt.plot(sapf_x,sapf_y, label="SAPF")
+    
+    for i in range(len(obstacles)):    
+        drawing_circles = plt.Circle( (obstacles[i][0], obstacles[i][1]), 0.2, fill = False )
+        axes.add_artist(drawing_circles)
+    
+    for i in range(len(humans)):                 
+        drawing_circles = plt.Circle( (humans[i][0][0], humans[i][0][1]), 0.3,  fill = False, color = (1, 0, 0) )
+        axes.add_artist(drawing_circles)        
+        plt.quiver(humans[i][0][0], humans[i][0][1], humans[i][1][0], humans[i][1][1], scale=5, scale_units="inches", minshaft=2, headlength=5)
+    
+
+    plt.plot(goal[0], goal[1], 'g')
+    plt.plot(start[0], start[1], 'r')
+    
+    goal_circles = plt.Circle( (goal[0], goal[1]), goalth, alpha =1.0, color=(0, 1, 0) ,fill = True )
+    axes.add_artist(goal_circles)
+    start_circles = plt.Circle( (start[0], start[1]), goalth, alpha =1.0, color=(1, 0, 0) ,fill = True )
+    axes.add_artist(start_circles) 
+    
+    axes.legend(framealpha = 0.5)
+    
+    plt.savefig(f'robot_control/src/comparison_data/map_images/{iter}.png', bbox_inches='tight')
+    
+
 
 def determine_path_length(x, y):
     path_length = 0
@@ -48,15 +89,23 @@ def time_in_social_shapes(x, y, humans, dT):
     time_in_personal = 0
     time_in_social = 0
     
-    for i in range(len(humans)):
-        for j in range(len(x)):
-            if dist((x[j], y[j]), (humans[i][0][0], humans[i][0][1])) < hc.intimate:
+    for j in range(len(x)):
+        in_intimate = False
+        in_personal = False
+        in_social = False    
+        for i in range(len(humans)):
+            if dist((x[j], y[j]), (humans[i][0][0], humans[i][0][1])) < hc.intimate and in_intimate == False:
                 time_in_intimate += dT
-            elif dist((x[j], y[j]), (humans[i][0][0], humans[i][0][1])) < hc.personal:
+                in_intimate = True
+            
+            elif dist((x[j], y[j]), (humans[i][0][0], humans[i][0][1])) < hc.personal and in_personal == False:
                 time_in_personal += dT
-            elif dist((x[j], y[j]), (humans[i][0][0], humans[i][0][1])) < hc.social:
+                in_personal = True
+                
+            elif dist((x[j], y[j]), (humans[i][0][0], humans[i][0][1])) < hc.social and in_social == True:
                 time_in_social += dT
-    
+                in_social = True
+                
     return round(time_in_intimate, 2), round(time_in_personal, 2), round(time_in_social, 2)
 
 
@@ -111,11 +160,23 @@ def simulate(num_simulations):
 
         if num_obstacles > 0:    
             for j in range(num_obstacles):
-                obstacles.append([(random.random()- 0.5)*map_width*0.8 + map_x_cent, (random.random()- 0.5)*map_width*0.8 + map_y_cent])
+                x_obs = (random.random()- 0.5)*map_width*0.8 + map_x_cent
+                y_obs = (random.random()- 0.5)*map_width*0.8 + map_y_cent
+                while dist([x_obs, y_obs], [xgoal, ygoal]) < 3 or dist([x_obs, y_obs], [xstart, ystart]) < 3:
+                    x_obs = (random.random()- 0.5)*map_width*0.8 + map_x_cent
+                    y_obs = (random.random()- 0.5)*map_width*0.8 + map_y_cent
+                obstacles.append([x_obs,  y_obs])
             
         if num_humans > 0:
             for j in range(num_humans):
-                pos = [(random.random()- 0.5)*map_width*0.8 + map_x_cent, (random.random()- 0.5)*map_width*0.8 + map_y_cent]
+                
+                x_hum = (random.random()- 0.5)*map_width*0.8 + map_x_cent
+                y_hum = (random.random()- 0.5)*map_width*0.8 + map_y_cent
+                while dist([x_hum, y_hum], [xgoal, ygoal]) < 3 or dist([x_hum, y_hum], [xstart, ystart]) < 3:
+                    x_hum = (random.random()- 0.5)*map_width*0.8 + map_x_cent
+                    y_hum = (random.random()- 0.5)*map_width*0.8 + map_y_cent
+                
+                pos = [x_hum, y_hum]
                 
                 dirx = (random.random()-0.5)
                 diry = (random.random()-0.5)
@@ -138,6 +199,8 @@ def simulate(num_simulations):
         dwa_wels = [0]
         
         dwa_time = [0]
+        
+        complete = False
 
         while dwa_iter < max_iterations:
             dwa_iter += 1
@@ -155,9 +218,9 @@ def simulate(num_simulations):
             dwa_time.append(dwa_time[-1] + dwa.dT)
             
             if dist([poses[1][0], poses[1][1]], [xgoal, ygoal]) < goal_th:
+                complete = True
                 break    
         
-        complete = completion(dwa_iter, max_iterations)
         
         time_in_intimate, time_in_personal, time_in_social = time_in_social_shapes(dwa_x, dwa_y, people, dT)
             
@@ -170,12 +233,10 @@ def simulate(num_simulations):
         closest_dist_obstacle = closest_distance_to_an_object(dwa_x, dwa_y, obstacles)
     
     
-        if complete and closest_dist_human > 0.3 and closest_dist_obstacle > 0.05:
-            
+        if complete:
             dwa_stats[i] = [path_length, total_duration, closest_dist_human, closest_dist_obstacle, time_in_intimate, time_in_personal, time_in_social]
         else:
             dwa_breaks += 1
-
 
 
 
@@ -194,6 +255,8 @@ def simulate(num_simulations):
         sapf_wels = [0]
         
         sapf_time = [0]
+
+        complete = False
 
         while sapf_iter < max_iterations:
             sapf_iter += 1
@@ -214,11 +277,9 @@ def simulate(num_simulations):
             
             # If at goal
             if dist(sapf.pos, [xgoal, ygoal]) < goal_th:
+                complete = True
                 break
             
-            
-        complete = completion(sapf_iter, max_iterations)
-        
         time_in_intimate, time_in_personal, time_in_social = time_in_social_shapes(sapf_x, sapf_y, people, dT)
             
         path_length = determine_path_length(sapf_x, sapf_y)
@@ -230,21 +291,50 @@ def simulate(num_simulations):
         closest_dist_obstacle = closest_distance_to_an_object(sapf_x, sapf_y, obstacles)
     
     
-        if complete and closest_dist_human > 0.3 and closest_dist_obstacle > 0.05:
-            
+        if complete:
             sapf_stats[i] = [path_length, total_duration, closest_dist_human, closest_dist_obstacle, time_in_intimate, time_in_personal, time_in_social]
         else:
             sapf_breaks += 1
+        
+        plot_map_and_save_figure(dwa_x, dwa_y, sapf_x, sapf_y, obstacles,people, [xstart, ystart], [xgoal, ygoal], map_x_cent, map_y_cent, map_width, i, goal_th)
+    
+    header = ['Simulation Number []', 'Path Length [m]', 'Total Duration [s]', 'Smallest Distance to Person [m]', 'Smallest Distance to Obstacle [m]', 
+              "Time in Intimate Space [s]", "Time in Personal Space [s]", "Time in Social-Consultive Space [s]"]
+    
+    with open('robot_control/src/comparison_data/sim_data/dwa.csv', 'w', encoding='UTF8', newline='') as f:
+        writer = csv.writer(f)
 
+        # write the header
+        writer.writerow(header)
+
+        # write multiple rows
+        for key, val in dwa_stats.items():
+            row = [key]
+            row.extend(val)
+            writer.writerow(row) 
+        
+    with open('robot_control/src/comparison_data/sim_data/dwa.txt', 'w', encoding='UTF8', newline='') as f:
+        f.write(f"Number of breaks: {dwa_breaks} \n")
+        f.write(f"Total number of simulations: {num_simulations} \n")
+        
+    
+    with open('robot_control/src/comparison_data/sim_data/sapf.csv', 'w', encoding='UTF8', newline='') as f:
+        writer = csv.writer(f)
+
+        # write the header
+        writer.writerow(header)
+
+        # write multiple rows
+        for key, val in sapf_stats.items():
+            row = [key]
+            row.extend(val)
+            writer.writerow(row) 
         
         
-    print("Sapf stats: ", sapf_stats)
-    print("Num of sapf_breaks: ", sapf_breaks)
-
-    print("Dwa stats: ", dwa_stats)
-    print("Num of dwa_breaks: ", dwa_breaks)
-
+    with open('robot_control/src/comparison_data/sim_data/sapf.txt', 'w', encoding='UTF8', newline='') as f:
+        f.write(f"Number of breaks: {sapf_breaks} \n")
+        f.write(f"Total number of simulations: {num_simulations} \n")
         
 
 if __name__ == "__main__":
-    simulate(3)
+    simulate(4)
