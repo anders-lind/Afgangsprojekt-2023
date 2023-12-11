@@ -8,6 +8,7 @@ from numpy.linalg import norm
 from safe_artificial_potential_fields import SAPF
 from human_cost import Human_cost as HC
 import csv
+import time
 
 
 def plot_map_and_save_figure(dwa_x, dwa_y, sapf_x, sapf_y, obstacles, humans, start, goal, x_cent, y_cent, map_width, iter, goalth):
@@ -199,14 +200,18 @@ def simulate(num_simulations):
         dwa_wels = [0]
         
         dwa_time = [0]
-        
+               
         complete = False
+        
+        time_start = time.time()
 
+        
         while dwa_iter < max_iterations:
             dwa_iter += 1
 
             v, w, poses, scores = dwa.dwa(vcur=dwa_vels[-1], wcur=dwa_wels[-1], xcur=dwa_x[-1], ycur=dwa_y[-1], thetacur=dwa_theta[-1], 
                                            xgoal=xgoal, ygoal=ygoal, obstacles=obstacles, people=people)
+            
             
             dwa_vels.append(v)
             dwa_wels.append(w)
@@ -219,8 +224,9 @@ def simulate(num_simulations):
             
             if dist([poses[1][0], poses[1][1]], [xgoal, ygoal]) < goal_th:
                 complete = True
-                break    
-        
+                break
+                
+        dwa_average_elapsed_time = (time.time() - time_start)/dwa_iter
         
         time_in_intimate, time_in_personal, time_in_social = time_in_social_shapes(dwa_x, dwa_y, people, dT)
             
@@ -234,7 +240,7 @@ def simulate(num_simulations):
     
     
         if complete:
-            dwa_stats[i] = [path_length, total_duration, closest_dist_human, closest_dist_obstacle, time_in_intimate, time_in_personal, time_in_social]
+            dwa_stats[i] = [path_length, total_duration, closest_dist_human, closest_dist_obstacle, time_in_intimate, time_in_personal, time_in_social, dwa_average_elapsed_time]
         else:
             dwa_breaks += 1
 
@@ -256,8 +262,11 @@ def simulate(num_simulations):
         
         sapf_time = [0]
 
+        
         complete = False
-
+        
+        time_start = time.time()
+                
         while sapf_iter < max_iterations:
             sapf_iter += 1
             
@@ -279,7 +288,9 @@ def simulate(num_simulations):
             if dist(sapf.pos, [xgoal, ygoal]) < goal_th:
                 complete = True
                 break
-            
+        
+        sapf_average_elapsed_time = (time.time() - time_start)/sapf_iter
+        
         time_in_intimate, time_in_personal, time_in_social = time_in_social_shapes(sapf_x, sapf_y, people, dT)
             
         path_length = determine_path_length(sapf_x, sapf_y)
@@ -292,14 +303,14 @@ def simulate(num_simulations):
     
     
         if complete:
-            sapf_stats[i] = [path_length, total_duration, closest_dist_human, closest_dist_obstacle, time_in_intimate, time_in_personal, time_in_social]
+            sapf_stats[i] = [path_length, total_duration, closest_dist_human, closest_dist_obstacle, time_in_intimate, time_in_personal, time_in_social, sapf_average_elapsed_time]
         else:
             sapf_breaks += 1
         
         plot_map_and_save_figure(dwa_x, dwa_y, sapf_x, sapf_y, obstacles,people, [xstart, ystart], [xgoal, ygoal], map_x_cent, map_y_cent, map_width, i, goal_th)
     
     header = ['Simulation Number []', 'Path Length [m]', 'Total Duration [s]', 'Smallest Distance to Person [m]', 'Smallest Distance to Obstacle [m]', 
-              "Time in Intimate Space [s]", "Time in Personal Space [s]", "Time in Social-Consultive Space [s]"]
+              "Time in Intimate Space [s]", "Time in Personal Space [s]", "Time in Social-Consultive Space [s]", "Average Execution Time [s]"]
     
     with open('robot_control/src/comparison_data/sim_data/dwa.csv', 'w', encoding='UTF8', newline='') as f:
         writer = csv.writer(f)
