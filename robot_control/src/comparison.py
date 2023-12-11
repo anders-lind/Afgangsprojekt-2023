@@ -10,13 +10,13 @@ from human_cost import Human_cost as HC
 
 def determine_path_length(x, y):
     path_length = 0
-    for i in range(len(x)):
-        path_length += sqrt(x[i]**2 + y[i]**2)
-    return path_length
+    for i in range(1, len(x)):
+        path_length += sqrt((x[i] - x[i-1])**2 + (y[i] - y[i-1])**2)
+    return round(path_length, 2)
 
 
 def determine_total_duration(t):
-    return t[-1]
+    return round(t[-1], 2)
 
 
 def closest_distance_to_an_object(x, y, obstacles):
@@ -27,7 +27,7 @@ def closest_distance_to_an_object(x, y, obstacles):
             if distance < min_dist:
                 min_dist = distance
     
-    return min_dist
+    return round(min_dist, 2)
 
 
 def closest_distance_to_a_human(x,y,humans):
@@ -38,7 +38,7 @@ def closest_distance_to_a_human(x,y,humans):
             if distance < min_dist:
                 min_dist = distance
     
-    return min_dist
+    return round(min_dist, 2)
 
 
 def time_in_social_shapes(x, y, humans, dT):
@@ -57,7 +57,7 @@ def time_in_social_shapes(x, y, humans, dT):
             elif dist((x[j], y[j]), (humans[i][0][0], humans[i][0][1])) < hc.social:
                 time_in_social += dT
     
-    return time_in_intimate, time_in_personal, time_in_social
+    return round(time_in_intimate, 2), round(time_in_personal, 2), round(time_in_social, 2)
 
 
 def completion(iter, max_iter):
@@ -78,6 +78,7 @@ def simulate(num_simulations):
     
     max_iterations = 500
     goal_th = 0.6
+    dT = 0.1
     
     
     dwa_stats = {}
@@ -124,6 +125,7 @@ def simulate(num_simulations):
                 people.append([pos, dir])
                 
 
+        ### DWA ###
         dwa = DWA()
         
         dwa_iter = 0
@@ -157,60 +159,91 @@ def simulate(num_simulations):
         
         complete = completion(dwa_iter, max_iterations)
         
-        if complete:
+        time_in_intimate, time_in_personal, time_in_social = time_in_social_shapes(dwa_x, dwa_y, people, dT)
             
-            time_in_intimate, time_in_personal, time_in_social = time_in_social_shapes(dwa_x, dwa_y, people)
-            
-            path_length = determine_path_length(dwa_x, dwa_y)
-            
-            total_duration = determine_total_duration(dwa_time)
-            
-            closest_dist_human = closest_distance_to_a_human(dwa_x, dwa_y, people)
-            
-            closest_dist_obstacle = closest_distance_to_an_object(dwa_x, dwa_y, obstacles)
+        path_length = determine_path_length(dwa_x, dwa_y)
+        
+        total_duration = determine_total_duration(dwa_time)
+        
+        closest_dist_human = closest_distance_to_a_human(dwa_x, dwa_y, people)
+        
+        closest_dist_obstacle = closest_distance_to_an_object(dwa_x, dwa_y, obstacles)
+    
+    
+        if complete and closest_dist_human > 0.3 and closest_dist_obstacle > 0.05:
             
             dwa_stats[i] = [path_length, total_duration, closest_dist_human, closest_dist_obstacle, time_in_intimate, time_in_personal, time_in_social]
         else:
             dwa_breaks += 1
+
+
+
+
+
+        ### SAPF ###
+        sapf = SAPF(goal=np.array([xgoal,ygoal]), start_pos=np.array([xstart, ystart]), start_theta=thetastart,
+                    obstacles=np.array(obstacles), humans=np.array(people), goal_th=goal_th)
         
+        sapf_iter = 0
+        
+        sapf_x = [xstart]
+        sapf_y = [ystart]
+        sapf_theta = [thetastart]
+        
+        sapf_vels = [0]
+        sapf_wels = [0]
+        
+        sapf_time = [0]
+
+        while sapf_iter < max_iterations:
+            sapf_iter += 1
+            
+            # Calculate potentials and move robot
+            pot = sapf.calc_potential(pos=sapf.pos, goal=sapf.goal)
+            v_ref, theta_ref = sapf.calc_ref_values(pot)
+            sapf.simulate_robot_step(v_ref=v_ref, theta_ref=theta_ref)
+            
+            sapf_vels.append(sapf.vel)
+            sapf_wels.append(sapf.omega)
+            
+            sapf_x.append(sapf.pos[0])
+            sapf_y.append(sapf.pos[1])
+            sapf_theta.append(sapf.theta)
+            
+            sapf_time.append(sapf_time[-1] + sapf.time_step_size)
+            
+            # If at goal
+            if dist(sapf.pos, [xgoal, ygoal]) < goal_th:
+                break
+            
+            
+        complete = completion(sapf_iter, max_iterations)
+        
+        time_in_intimate, time_in_personal, time_in_social = time_in_social_shapes(sapf_x, sapf_y, people, dT)
+            
+        path_length = determine_path_length(sapf_x, sapf_y)
+        
+        total_duration = determine_total_duration(sapf_time)
+        
+        closest_dist_human = closest_distance_to_a_human(sapf_x, sapf_y, people)
+        
+        closest_dist_obstacle = closest_distance_to_an_object(sapf_x, sapf_y, obstacles)
     
-    print(dwa_stats)
-    print(dwa_breaks)
-        
-        
-        # sapf = SAPF()
-        
-        # sapf_iter = 0
-        
-        # sapf_x = [xstart]
-        # sapf_y = [ystart]
-        # sapf_theta = [thetastart]
-        
-        # sapf_vels = [0]
-        # sapf_wels = [0]
-        
-        # sapf_time = [0]
-
-        # while sapf_iter < max_iterations and dwa.stop == False:
-        #     sapf_iter += 1
-
-        #     v, w, poses, scores = dwa.dwa(vcur=dwa_vels[-1], wcur=dwa_wels[-1], xcur=dwa_x[-1], ycur=dwa_y[-1], thetacur=dwa_theta[-1], 
-        #                                    xgoal=xgoal, ygoal=ygoal, obstacles=obstacles, people=people)
+    
+        if complete and closest_dist_human > 0.3 and closest_dist_obstacle > 0.05:
             
-        #     sapf_vels.append(v)
-        #     sapf_wels.append(w)
-            
-        #     sapf_x.append(poses[1][0])
-        #     sapf_y.append(poses[1][1])
-        #     sapf_theta.append(poses[1][2])
-            
-        #     sapf_time.append(dwa_time[-1] + dwa.dT)
+            sapf_stats[i] = [path_length, total_duration, closest_dist_human, closest_dist_obstacle, time_in_intimate, time_in_personal, time_in_social]
+        else:
+            sapf_breaks += 1
 
-        #     # If at goal
-        #     if dist([poses[1][0], poses[1][1]], [xgoal, ygoal]) < goal_th:
-        #         dwa.stop = True
-        #         print("At goal!")
-        #         print("i =", i)
+        
+        
+    print("Sapf stats: ", sapf_stats)
+    print("Num of sapf_breaks: ", sapf_breaks)
+
+    print("Dwa stats: ", dwa_stats)
+    print("Num of dwa_breaks: ", dwa_breaks)
+
         
 
 if __name__ == "__main__":
