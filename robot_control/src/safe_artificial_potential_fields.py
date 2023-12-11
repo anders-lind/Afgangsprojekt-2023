@@ -169,6 +169,11 @@ class SAPF:
 
 
     def simulate_path(self, plot_path=False, plot_more=False, debug=False):
+        """
+        Runs a full simulation starting the robot at its current configuration and terminates at either goal, a crash or when max_i is exceeded.
+        Returns reason for termination.
+        Can optionally plot the path and other information.
+        """
         reached_goal = False
         hit_obstacle = False
         hit_human = False
@@ -402,12 +407,12 @@ class SAPF:
         return reached_goal, hit_obstacle, hit_human, i*self.time_step_size
 
 
-    def draw_arrows(self, text: str):
-        print("something changed:", text)
 
-
-
-    def simulate_robot_step(self, v_ref: float, theta_ref: float):
+    def simulate_robot_step(self, v_ref: float, theta_ref: float) -> ([float, float], float):
+        """
+        Simulates a single step of the robot which tries to follow the given reference values.
+        Both returns and updates its own values to correspond to the new position and orientation
+        """
         # Calculate rotational acceleration
         # Calculate rotational speed
         # Calculate rotation
@@ -455,6 +460,8 @@ class SAPF:
         x = self.pos[0] + cos(self.theta)*self.vel*self.time_step_size
         y = self.pos[1] + sin(self.theta)*self.vel*self.time_step_size
         self.pos = np.array([x, y])
+    
+        return self.pos, self.theta
 
 
 
