@@ -466,7 +466,7 @@ class SAPF:
 
 
     # Returns the reference linear velocity and the reference direction
-    def calc_ref_values(self, potential):
+    def calc_ref_values(self, potential) -> (float, float):
         theta_ref = atan2(potential[1], potential[0])
         theta_error = theta_ref - self.theta
         theta_error = atan2(sin(theta_error), cos(theta_error)) # wrap [-pi, pi]

@@ -89,6 +89,7 @@ def simulate(num_simulations):
                 people.append([pos, dir])
                 
 
+        ### DWA ###
         dwa = DWA()
         
         dwa_iter = 0
@@ -126,41 +127,59 @@ def simulate(num_simulations):
         if dwa_iter == max_iterations:
             dwa_got_to_goal = False
         
-        
-        
-        # sapf = SAPF()
-        
-        # sapf_iter = 0
-        
-        # sapf_x = [xstart]
-        # sapf_y = [ystart]
-        # sapf_theta = [thetastart]
-        
-        # sapf_vels = [0]
-        # sapf_wels = [0]
-        
-        # sapf_time = [0]
 
-        # while sapf_iter < max_iterations and dwa.stop == False:
-        #     sapf_iter += 1
 
-        #     v, w, poses, scores = dwa.dwa(vcur=dwa_vels[-1], wcur=dwa_wels[-1], xcur=dwa_x[-1], ycur=dwa_y[-1], thetacur=dwa_theta[-1], 
-        #                                    xgoal=xgoal, ygoal=ygoal, obstacles=obstacles, people=people)
-            
-        #     sapf_vels.append(v)
-        #     sapf_wels.append(w)
-            
-        #     sapf_x.append(poses[1][0])
-        #     sapf_y.append(poses[1][1])
-        #     sapf_theta.append(poses[1][2])
-            
-        #     sapf_time.append(dwa_time[-1] + dwa.dT)
+        ### SAPF ###
+        sapf = SAPF(goal=np.array([xgoal,ygoal]), start_pos=np.array([xstart, ystart]), start_theta=thetastart,
+                    obstacles=np.array(obstacles), humans=np.array(people), goal_th=goal_th)
+        
+        sapf_iter = 0
+        
+        sapf_x = [xstart]
+        sapf_y = [ystart]
+        sapf_theta = [thetastart]
+        
+        sapf_vels = [0]
+        sapf_wels = [0]
+        
+        sapf_time = [0]
 
-        #     # If at goal
-        #     if dist([poses[1][0], poses[1][1]], [xgoal, ygoal]) < goal_th:
-        #         dwa.stop = True
-        #         print("At goal!")
-        #         print("i =", i)
+        while sapf_iter < max_iterations:
+            sapf_iter += 1
+            
+            # Calculate potentials and move robot
+            pot = sapf.calc_potential(pos=sapf.pos, goal=sapf.goal)
+            v_ref, theta_ref = sapf.calc_ref_values(pot)
+            sapf.simulate_robot_step(v_ref=v_ref, theta_ref=theta_ref)
+            
+            sapf_vels.append(sapf.vel)
+            sapf_wels.append(sapf.omega)
+            
+            sapf_x.append(sapf.pos[0])
+            sapf_y.append(sapf.pos[1])
+            sapf_theta.append(sapf.theta)
+            
+            sapf_time.append(sapf_time[-1] + sapf.time_step_size)
+            
+            # If at goal
+            if dist(sapf.pos, [xgoal, ygoal]) < goal_th:
+                sapf_got_to_goal = True
+                break
+            
+            # If hit obstacle
+            for o in range(len(sapf.obstacles)):
+                if norm(sapf.obstacles[o] - sapf.pos) < sapf.crash_dist:
+                    sapf_hit_obstacle = True
+                    break
+            
+            # If hit human
+            for h in range(len(sapf.humans)):
+                if norm(sapf.humans[h][0] - sapf.pos) < sapf.crash_dist:
+                    sapf_hit_human = True
+                    break
+        
+        print(sapf_iter)
+
         
 
 if __name__ == "__main__":
