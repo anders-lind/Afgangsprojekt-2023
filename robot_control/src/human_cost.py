@@ -125,7 +125,7 @@ class Human_cost:
 
     def get_cost_xy(self, x, y, people_angle_x, people_angle_y):
                         
-            if sqrt(x**2 + y**2) >= self.personal:
+            if sqrt(x**2 + y**2) >= self.social:
                 return 0
 
             

@@ -36,6 +36,10 @@ def closest_distance_to_a_human(x,y,humans):
     
     return min_dist
     
+def time_in_social_shapes(x y, humans):
+    pass
+
+
 
 
 def simulate(num_simulations):
