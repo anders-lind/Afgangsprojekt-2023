@@ -47,6 +47,8 @@ def plot_map_and_save_figure(dwa_x, dwa_y, sapf_x, sapf_y, obstacles, humans, st
     axes.legend(framealpha = 0.5)
     
     plt.savefig(f'robot_control/src/comparison_data/map_images/{iter}.png', bbox_inches='tight')
+
+    plt.close('all')
     
 
 
@@ -103,7 +105,7 @@ def time_in_social_shapes(x, y, humans, dT):
                 time_in_personal += dT
                 in_personal = True
                 
-            elif dist((x[j], y[j]), (humans[i][0][0], humans[i][0][1])) < hc.social and in_social == True:
+            elif dist((x[j], y[j]), (humans[i][0][0], humans[i][0][1])) < hc.social and in_social == False:
                 time_in_social += dT
                 in_social = True
                 
@@ -139,6 +141,7 @@ def simulate(num_simulations):
     sapf_breaks = 0
     
     for i in range(num_simulations):
+        print("Simulation", i+1 ,"of", num_simulations)
         
         xstart = (random.random()- 0.5)*map_width*0.95 + map_x_cent
         ystart = (random.random()- 0.5)*map_width*0.95 + map_y_cent  
@@ -227,6 +230,7 @@ def simulate(num_simulations):
                 break
                 
         dwa_average_elapsed_time = (time.time() - time_start)/dwa_iter
+        print("DWA time: ", dwa_average_elapsed_time*dwa_iter)
         
         time_in_intimate, time_in_personal, time_in_social = time_in_social_shapes(dwa_x, dwa_y, people, dT)
             
@@ -290,6 +294,7 @@ def simulate(num_simulations):
                 break
         
         sapf_average_elapsed_time = (time.time() - time_start)/sapf_iter
+        print("SAPF time:", sapf_average_elapsed_time*sapf_iter)
         
         time_in_intimate, time_in_personal, time_in_social = time_in_social_shapes(sapf_x, sapf_y, people, dT)
             
@@ -348,4 +353,4 @@ def simulate(num_simulations):
         
 
 if __name__ == "__main__":
-    simulate(4)
+    simulate(500)
