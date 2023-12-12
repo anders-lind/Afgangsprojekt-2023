@@ -1,0 +1,2 @@
+install map_server with: "sudo apt install ros-noetic-map-server"
+run the following command from the terminal in this folder: "rosrun map_server map_server i4map.yaml map:=cool_map"

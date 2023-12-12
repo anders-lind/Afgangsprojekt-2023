@@ -342,4 +342,4 @@ def simulate(num_simulations):
         
 
 if __name__ == "__main__":
-    simulate(4)
+    simulate(250)
