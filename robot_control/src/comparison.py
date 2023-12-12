@@ -120,6 +120,21 @@ def completion(iter, max_iter):
 
 def simulate(num_simulations):
     
+    header = ['Simulation Number []', 'Path Length [m]', 'Total Duration [s]', 'Smallest Distance to Person [m]', 'Smallest Distance to Obstacle [m]', 
+              "Time in Intimate Space [s]", "Time in Personal Space [s]", "Time in Social-Consultive Space [s]", "Average Execution Time [s]"]
+    
+    with open('robot_control/src/comparison_data/sim_data/dwa.csv', 'w', encoding='UTF8', newline='') as f:
+        writer = csv.writer(f)
+
+        # write the header
+        writer.writerow(header)
+
+    with open('robot_control/src/comparison_data/sim_data/sapf.csv', 'w', encoding='UTF8', newline='') as f:
+        writer = csv.writer(f)
+
+        # write the header
+        writer.writerow(header)
+    
     map_x_cent = 0
     map_y_cent = 0
     
@@ -244,11 +259,13 @@ def simulate(num_simulations):
     
     
         if complete:
-            dwa_stats[i] = [path_length, total_duration, closest_dist_human, closest_dist_obstacle, time_in_intimate, time_in_personal, time_in_social, dwa_average_elapsed_time]
+            with open('robot_control/src/comparison_data/sim_data/dwa.csv', 'a', encoding='UTF8', newline='') as f:
+                writer = csv.writer(f)
+                
+                row = [i, path_length, total_duration, closest_dist_human, closest_dist_obstacle, time_in_intimate, time_in_personal, time_in_social, dwa_average_elapsed_time]
+                writer.writerow(row)
         else:
-            dwa_breaks += 1
-
-
+            sapf_breaks += 1
 
 
         ### SAPF ###
@@ -308,44 +325,21 @@ def simulate(num_simulations):
     
     
         if complete:
-            sapf_stats[i] = [path_length, total_duration, closest_dist_human, closest_dist_obstacle, time_in_intimate, time_in_personal, time_in_social, sapf_average_elapsed_time]
+            with open('robot_control/src/comparison_data/sim_data/sapf.csv', 'a', encoding='UTF8', newline='') as f:
+                writer = csv.writer(f)
+
+                row = [i, path_length, total_duration, closest_dist_human, closest_dist_obstacle, time_in_intimate, time_in_personal, time_in_social, sapf_average_elapsed_time]
+                writer.writerow(row)
         else:
             sapf_breaks += 1
         
         plot_map_and_save_figure(dwa_x, dwa_y, sapf_x, sapf_y, obstacles,people, [xstart, ystart], [xgoal, ygoal], map_x_cent, map_y_cent, map_width, i, goal_th)
     
-    header = ['Simulation Number []', 'Path Length [m]', 'Total Duration [s]', 'Smallest Distance to Person [m]', 'Smallest Distance to Obstacle [m]', 
-              "Time in Intimate Space [s]", "Time in Personal Space [s]", "Time in Social-Consultive Space [s]", "Average Execution Time [s]"]
-    
-    with open('robot_control/src/comparison_data/sim_data/dwa.csv', 'w', encoding='UTF8', newline='') as f:
-        writer = csv.writer(f)
-
-        # write the header
-        writer.writerow(header)
-
-        # write multiple rows
-        for key, val in dwa_stats.items():
-            row = [key]
-            row.extend(val)
-            writer.writerow(row) 
         
     with open('robot_control/src/comparison_data/sim_data/dwa.txt', 'w', encoding='UTF8', newline='') as f:
         f.write(f"Number of breaks: {dwa_breaks} \n")
         f.write(f"Total number of simulations: {num_simulations} \n")
-        
-    
-    with open('robot_control/src/comparison_data/sim_data/sapf.csv', 'w', encoding='UTF8', newline='') as f:
-        writer = csv.writer(f)
-
-        # write the header
-        writer.writerow(header)
-
-        # write multiple rows
-        for key, val in sapf_stats.items():
-            row = [key]
-            row.extend(val)
-            writer.writerow(row) 
-        
+               
         
     with open('robot_control/src/comparison_data/sim_data/sapf.txt', 'w', encoding='UTF8', newline='') as f:
         f.write(f"Number of breaks: {sapf_breaks} \n")
