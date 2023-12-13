@@ -540,7 +540,7 @@ class SAPF:
 
             # Calculate repulsive potential for each object
             if (d_O_i < self.d_Oi_star):
-                nablaU_repObs_i = self.eta_obs * (1/d_O_i - 1/self.d_Oi_star) * (1.0 / (pow(d_O_i,0))) * (pos - self.obstacles[i])
+                nablaU_repObs_i = self.eta_obs * (1/d_O_i - 1/self.d_Oi_star) * (1.0 / (pow(d_O_i,2))) * (pos - self.obstacles[i])
             else:
                 nablaU_repObs_i = np.zeros(2)
 
