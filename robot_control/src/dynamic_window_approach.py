@@ -21,11 +21,11 @@ from scipy.stats._multivariate import _squeeze_output
 from math import *
 
 class DWA:
-    def __init__(self, dT = 0.1, simT = 3.0, vPrec = 0.1, wPrec = 0.1, goal_th = 0.6):        
+    def __init__(self, dT = 0.25, simT = 2.0, vPrec = 0.1, wPrec = 0.1, goal_th = 0.6):        
         
         self.map_y_cent = 0
         self.map_x_cent = 0
-        self.map_width = 20
+        self.map_width = 30
         
         self.simT = simT
         self.vPrec = vPrec
@@ -33,11 +33,11 @@ class DWA:
         self.dT = dT
         self.N = int(floor(self.simT/self.dT))
         
-        self.obj_heading =   0.06
-        self.obj_speed = 10
-        self.obj_obstacle = 0.8
+        self.obj_heading =   0.3
+        self.obj_speed = 1.3
+        self.obj_obstacle = 0.6
         
-        self.obj_people =  10.0
+        self.obj_people =  4
         
         self.obj_th = 0.5
             
@@ -119,7 +119,7 @@ class DWA:
                 minr = float("Inf")
                 
                 for j in range(len(obstacles)):
-                    for h in range(self.N//3):
+                    for h in range(self.N):
                         dx = poses[h][0] - obstacles[j][0]
                         dy = poses[h][1] - obstacles[j][1]
                         
@@ -138,7 +138,7 @@ class DWA:
             if len(people) > 0:
                 human_score = 0
                 for j in range(len(people)):
-                    for h in range(self.N//2):
+                    for h in range(self.N):
                         vec = [poses[h][0] - people[j][0][0], poses[h][1] - people[j][0][1]]
                         people_direc = [people[j][1][0], people[j][1][1]]
                         
@@ -150,7 +150,7 @@ class DWA:
                             
                 
             
-            angle_error = poses[self.N//2][2] - atan2(ygoal- poses[self.N//2][1], xgoal - poses[self.N//2][0])
+            angle_error = poses[self.N-1][2] - atan2(ygoal- poses[self.N-1][1], xgoal - poses[self.N-1][0])
             heading = abs(atan2(sin(angle_error), cos(angle_error)))
             heading_score =  self.obj_heading*heading
             
@@ -214,24 +214,36 @@ class DWA:
         with_obstacles = False
         with_people = False
         
-        if num_obstacles > 0:    
-            for i in range(num_obstacles):
-                obstacles.append([(random.random()- 0.5)*self.map_width*0.8 + self.map_x_cent, (random.random()- 0.5)*self.map_width*0.8 + self.map_y_cent])
+        
+        # people = [[[-7.628100894388067, 3.4154098195069467], [0.8049132248720982, 0.5933925348586712]], [[-5.466481775607566, -6.896318233696028], [-0.010661367814394045, -0.9999431660031114]], [[-3.312477282810234, -2.0009274781740807], [-0.6587384015591221, -0.7523720610916734]], [[3.5389702000507945, 0.05233796970694371], [0.9495008281317766, -0.31376452536427735]], [[4.927280407180085, 5.4040645428380785], [-0.41194351355772246, -0.9112093840812432]], [[-2.6019992670325376, -6.628660260019831], [-0.9304019911509825, 0.3665407683495615]], [[3.8934643935681468, -3.7715344243867435], [0.8467107583147311, -0.5320534670069291]], [[-4.49657147274171, -2.0257417935565734], [0.9215614591575776, 0.3882325037852399]], [[7.054064494277485, -6.948301300913004], [-0.9998381819074005, -0.01798916340755726]], [[6.089431096668327, -3.785125599146481], [0.9005975797225737, 0.43465388459996807]]]
+        # obstacles = [[3.4620780011110384, -6.022094011188084], [-4.009974079787394, -0.6485367921078513], [-7.36096762363364, 7.216330086697337], [5.608744401297672, 1.850811724550809], [3.8458299368470623, 3.357341808539937], [-4.778073368033663, -5.501141866315759], [4.723132838747985, 0.3845932731672015], [-2.229574295791508, 2.036716162637534], [4.171285482646521, 3.7728185792673266], [-6.218284379822736, 5.97907738914949], [4.154923208102396, 1.8794276841810884], [-2.9544228765998177, 0.4480890828980719], [0.8345912954350894, 0.9778563383034644], [-6.743270413377292, 0.4883006991849541], [-5.667493154441951, -7.785785428113856], [-0.35529269417974874, -1.6953325996094204], [-6.258261636260494, -7.750274910776324], [5.673472479630764, -1.7661319837998537], [-1.8415642436138828, 6.773339898825298], [3.224003003417552, 3.289856053257889]]
             
-            # obstacles = [[3.4620780011110384, -6.022094011188084], [-4.009974079787394, -0.6485367921078513], [-7.36096762363364, 7.216330086697337], [5.608744401297672, 1.850811724550809], [3.8458299368470623, 3.357341808539937], [-4.778073368033663, -5.501141866315759], [4.723132838747985, 0.3845932731672015], [-2.229574295791508, 2.036716162637534], [4.171285482646521, 3.7728185792673266], [-6.218284379822736, 5.97907738914949], [4.154923208102396, 1.8794276841810884], [-2.9544228765998177, 0.4480890828980719], [0.8345912954350894, 0.9778563383034644], [-6.743270413377292, 0.4883006991849541], [-5.667493154441951, -7.785785428113856], [-0.35529269417974874, -1.6953325996094204], [-6.258261636260494, -7.750274910776324], [5.673472479630764, -1.7661319837998537], [-1.8415642436138828, 6.773339898825298], [3.224003003417552, 3.289856053257889]]
-            
-            
-            for i in range(len(obstacles)):    
-                drawing_circles = plt.Circle( (obstacles[i][0], obstacles[i][1]), 0.2, fill = False )
-                axes.add_artist(drawing_circles)
-            
-            with_obstacles = True
-            
-            print(obstacles)
 
+        if num_obstacles > 0:  
+            with_obstacles = True  
+            for j in range(num_obstacles):
+                x_obs = (random.random()- 0.5)*self.map_width*0.8 + self.map_x_cent
+                y_obs = (random.random()- 0.5)*self.map_width*0.8 + self.map_y_cent
+                while dist([x_obs, y_obs], [xgoal, ygoal]) < 3 or dist([x_obs, y_obs], [xstart, ystart]) < 3:
+                    x_obs = (random.random()- 0.5)*self.map_width*0.8 + self.map_x_cent
+                    y_obs = (random.random()- 0.5)*self.map_width*0.8 + self.map_y_cent
+                obstacles.append([x_obs,  y_obs])
+        
+        for i in range(len(obstacles)):    
+            drawing_circles = plt.Circle( (obstacles[i][0], obstacles[i][1]), 0.2, fill = False )
+            axes.add_artist(drawing_circles)
+        
         if num_people > 0:
-            for i in range(num_people):
-                pos = [(random.random()- 0.5)*self.map_width*0.8 + self.map_x_cent, (random.random()- 0.5)*self.map_width*0.8 + self.map_y_cent]
+            with_people = True
+            for j in range(num_people):
+                
+                x_hum = (random.random()- 0.5)*self.map_width*0.8 + self.map_x_cent
+                y_hum = (random.random()- 0.5)*self.map_width*0.8 + self.map_y_cent
+                while dist([x_hum, y_hum], [xgoal, ygoal]) < 3 or dist([x_hum, y_hum], [xstart, ystart]) < 3:
+                    x_hum = (random.random()- 0.5)*self.map_width*0.8 + self.map_x_cent
+                    y_hum = (random.random()- 0.5)*self.map_width*0.8 + self.map_y_cent
+                
+                pos = [x_hum, y_hum]
                 
                 dirx = (random.random()-0.5)
                 diry = (random.random()-0.5)
@@ -240,23 +252,10 @@ class DWA:
 
                 people.append([pos, dir])
             
-            # people = [[[-7.628100894388067, 3.4154098195069467], [0.8049132248720982, 0.5933925348586712]], [[-5.466481775607566, -6.896318233696028], [-0.010661367814394045, -0.9999431660031114]], [[-3.312477282810234, -2.0009274781740807], [-0.6587384015591221, -0.7523720610916734]], [[3.5389702000507945, 0.05233796970694371], [0.9495008281317766, -0.31376452536427735]], [[4.927280407180085, 5.4040645428380785], [-0.41194351355772246, -0.9112093840812432]], [[-2.6019992670325376, -6.628660260019831], [-0.9304019911509825, 0.3665407683495615]], [[3.8934643935681468, -3.7715344243867435], [0.8467107583147311, -0.5320534670069291]], [[-4.49657147274171, -2.0257417935565734], [0.9215614591575776, 0.3882325037852399]], [[7.054064494277485, -6.948301300913004], [-0.9998381819074005, -0.01798916340755726]], [[6.089431096668327, -3.785125599146481], [0.9005975797225737, 0.43465388459996807]]]
-        
-            
             for i in range(len(people)):                 
                 drawing_circles = plt.Circle( (people[i][0][0], people[i][0][1]), self.cost.person_size,  fill = False, color = (1, 0, 0) )
                 axes.add_artist(drawing_circles)
-                # drawing_circles = plt.Circle( (people[i][0][0], people[i][0][1]), self.cost.intimate, fill = False, color = (1, 0.5, 0) )
-                # axes.add_artist(drawing_circles)
-                # drawing_circles = plt.Circle( (people[i][0][0], people[i][0][1]), self.cost.personal, fill = False, color = (1, 0.79, 0.75) )
-                # axes.add_artist(drawing_circles)
-                # drawing_circles = plt.Circle( (people[i][0][0], people[i][0][1]), self.cost.social, fill = False, color = (0.6, 0.15, 0.15) )
-                # axes.add_artist(drawing_circles)
-                
                 plt.quiver(people[i][0][0], people[i][0][1], people[i][1][0], people[i][1][1], scale=5, scale_units="inches", minshaft=2, headlength=5)
-            
-            with_people = True
-            print(people)
     
         print("Start pos: (", xstart, ystart, ")")
         print("Goal pos: (", xgoal, ygoal, ")")
@@ -336,18 +335,18 @@ class DWA:
         plt.plot(x,y)
         
         
-        ### Plot x,y (t) ###
-        fig2 = plt.figure("Paths")
-        plt.plot(time, x, color='g', label='x(t)')
-        plt.plot(time, y, color='r', label='y(t)')
-        plt.legend()
-        plt.title("Paths")
-        plt.grid()
-        plt.xlabel("t [sek]")
-        plt.ylabel("Dist [m]")
+        # ### Plot x,y (t) ###
+        # fig2 = plt.figure("Paths")
+        # plt.plot(time, x, color='g', label='x(t)')
+        # plt.plot(time, y, color='r', label='y(t)')
+        # plt.legend()
+        # plt.title("Paths")
+        # plt.grid()
+        # plt.xlabel("t [sek]")
+        # plt.ylabel("Dist [m]")
 
 
-        ### Plot Scores ###
+        # ### Plot Scores ###
         fig3 = plt.figure("Scores")
         plt.plot(time, velocity_scores, color='g', label='Vel Score')
         plt.plot(time, heading_scores, color='b', label='Head Score')
@@ -358,22 +357,22 @@ class DWA:
         if with_obstacles:
             plt.plot(time, distance_scores, color='r', label='Dist Score')
             
-        plt.plot(time, total_score, color ='y', label='Total Score')
+        #plt.plot(time, total_score, color ='y', label='Total Score')
         plt.legend()
         plt.title("Scores")
         plt.grid()
         plt.xlabel("t [sek]")
         plt.ylabel("Score []")
         
-        ### Plot velocities ###
-        fig4 = plt.figure("Velocities")
-        plt.plot(time, wels, color='g', label='Ang. Vel [rad/s]')
-        plt.plot(time, vels, color='r', label='Lin. Vel [m/s]')
-        plt.legend()
-        plt.title("Velocities [rad/s] and [m/s]")
-        plt.grid()
-        plt.xlabel("t [sek]")
-        plt.ylabel("Velocity")
+        # ### Plot velocities ###
+        # fig4 = plt.figure("Velocities")
+        # plt.plot(time, wels, color='g', label='Ang. Vel [rad/s]')
+        # plt.plot(time, vels, color='r', label='Lin. Vel [m/s]')
+        # plt.legend()
+        # plt.title("Velocities [rad/s] and [m/s]")
+        # plt.grid()
+        # plt.xlabel("t [sek]")
+        # plt.ylabel("Velocity")
         
         # Show plot
         plt.show()
@@ -383,7 +382,7 @@ class DWA:
 if __name__ == '__main__':
     try:
         dwa = DWA()
-        dwa.simulate_dwa(num_obstacles=20, num_people=20)
+        dwa.simulate_dwa(num_obstacles=50, num_people=50)
         
     except rospy.ROSInterruptException:
         print("Error")
