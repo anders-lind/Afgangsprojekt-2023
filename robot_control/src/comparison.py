@@ -155,8 +155,7 @@ def simulate(end_i, start_i=0):
     dwa_breaks = 0
     sapf_breaks = 0
     
-    i = start_i
-    for i in range(end_i):
+    for i in range(start_i, end_i):
         print("Simulation", i+1 ,"of", end_i)
         
         xstart = (random.random()- 0.5)*map_width*0.95 + map_x_cent
@@ -348,4 +347,4 @@ def simulate(end_i, start_i=0):
         
 
 if __name__ == "__main__":
-    simulate(start_i=0, end_i=10)
+    simulate(start_i=0, end_i=100)
