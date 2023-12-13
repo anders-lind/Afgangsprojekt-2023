@@ -47,6 +47,8 @@ def plot_map_and_save_figure(dwa_x, dwa_y, sapf_x, sapf_y, obstacles, humans, st
     axes.legend(framealpha = 0.5)
     
     plt.savefig(f'robot_control/src/comparison_data/map_images/{iter}.png', bbox_inches='tight')
+
+    plt.close('all')
     
 
 
@@ -116,7 +118,7 @@ def completion(iter, max_iter):
     return True
 
 
-def simulate(num_simulations):
+def simulate(end_i, start_i=0):
     
     header = ['Simulation Number []', 'Path Length [m]', 'Total Duration [s]', 'Smallest Distance to Person [m]', 'Smallest Distance to Obstacle [m]', 
               "Time in Intimate Space [s]", "Time in Personal Space [s]", "Time in Social-Consultive Space [s]", "Average Execution Time [s]"]
@@ -153,7 +155,9 @@ def simulate(num_simulations):
     dwa_breaks = 0
     sapf_breaks = 0
     
-    for i in range(num_simulations):
+    i = start_i
+    for i in range(end_i):
+        print("Simulation", i+1 ,"of", end_i)
         
         xstart = (random.random()- 0.5)*map_width*0.95 + map_x_cent
         ystart = (random.random()- 0.5)*map_width*0.95 + map_y_cent  
@@ -168,7 +172,7 @@ def simulate(num_simulations):
             xgoal = (random.random()- 0.5)*map_width*0.95 + map_x_cent 
             ygoal = (random.random()- 0.5)*map_width*0.95 + map_y_cent
         
-        thetastart = atan2((ygoal - ystart), (xgoal-xstart))
+        thetastart = (random.random()-0.5)*2*pi
 
 
         obstacles = []
@@ -242,6 +246,7 @@ def simulate(num_simulations):
                 break
                 
         dwa_average_elapsed_time = (time.time() - time_start)/dwa_iter
+        print("DWA time: ", dwa_average_elapsed_time*dwa_iter)
         
         time_in_intimate, time_in_personal, time_in_social = time_in_social_shapes(dwa_x, dwa_y, people, dT)
             
@@ -307,6 +312,7 @@ def simulate(num_simulations):
                 break
         
         sapf_average_elapsed_time = (time.time() - time_start)/sapf_iter
+        print("SAPF time:", sapf_average_elapsed_time*sapf_iter)
         
         time_in_intimate, time_in_personal, time_in_social = time_in_social_shapes(sapf_x, sapf_y, people, dT)
             
@@ -333,13 +339,13 @@ def simulate(num_simulations):
         
     with open('robot_control/src/comparison_data/sim_data/dwa.txt', 'w', encoding='UTF8', newline='') as f:
         f.write(f"Number of breaks: {dwa_breaks} \n")
-        f.write(f"Total number of simulations: {num_simulations} \n")
+        f.write(f"Total number of simulations: {end_i} \n")
                
         
     with open('robot_control/src/comparison_data/sim_data/sapf.txt', 'w', encoding='UTF8', newline='') as f:
         f.write(f"Number of breaks: {sapf_breaks} \n")
-        f.write(f"Total number of simulations: {num_simulations} \n")
+        f.write(f"Total number of simulations: {end_i} \n")
         
 
 if __name__ == "__main__":
-    simulate(250)
+    simulate(start_i=0, end_i=10)
