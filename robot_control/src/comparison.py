@@ -171,7 +171,7 @@ def simulate(num_simulations):
             xgoal = (random.random()- 0.5)*map_width*0.95 + map_x_cent 
             ygoal = (random.random()- 0.5)*map_width*0.95 + map_y_cent
         
-        thetastart = atan2((ygoal - ystart), (xgoal-xstart))
+        thetastart = (random.random()-0.5)*2*pi
 
 
         obstacles = []
