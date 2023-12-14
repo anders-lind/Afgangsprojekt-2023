@@ -23,10 +23,10 @@ class SAPF:
             # SAPF parameters
             d_goal_star = 1.0,
             zeta        = 1.5,
-            eta         = 1.7,  #3
-            d_Oi_star   = 1.0,  #3
-            d_safe      = 0.4,  #1.4
-            d_vort      = 0.8,  #1.8
+            eta         = 1.7,  #2.7
+            d_Oi_star   = 1.0,  #1.4
+            d_safe      = 0.4,  #0.6
+            d_vort      = 0.8,  #1.0
             Kp_omega    = 1.6,
             k_hum       = 2.0,
             alpha_th    = radians(0),  #5
@@ -40,13 +40,13 @@ class SAPF:
             theta_max_error_hum = radians(135),
             # robot
             v_max     = 1.5,
-            omega_max = pi/3,
-            lin_a_max = 7.0,
-            rot_a_max = pi*110/180,
+            omega_max = pi/2,
+            lin_a_max = 5.0,
+            rot_a_max = pi,
             # Simulation #
             Kp_lin_a = 100.0, #0.2
             Kp_rot_a = 100.0,
-            time_step_size = 0.1,
+            dT = 0.1,
             goal_th = 0.6,
             max_iterations = 500,
             noise_mag = 0.000, #0.000
@@ -84,7 +84,7 @@ class SAPF:
         self.Kp_lin_a = Kp_lin_a
         self.Kp_rot_a = Kp_rot_a
         self.Kp_omega = Kp_omega
-        self.time_step_size = time_step_size
+        self.dT = dT
         self.goal_th = goal_th
         self.max_iterations = max_iterations
         self.noise_mag = noise_mag
@@ -282,7 +282,7 @@ class SAPF:
 
         # Print iterations
         if debug: print("i =", i)
-        time_axis = np.linspace(start=0, stop=i*self.time_step_size, num=i+1)
+        time_axis = np.linspace(start=0, stop=i*self.dT, num=i+1)
 
         if plot_path or save_plot:
             figure, axes = plt.subplots()
@@ -411,7 +411,7 @@ class SAPF:
             plt.close("all")
 
 
-        return reached_goal, hit_obstacle, hit_human, i*self.time_step_size
+        return reached_goal, hit_obstacle, hit_human, i*self.dT
 
 
 
@@ -446,7 +446,7 @@ class SAPF:
                 rot_acc = self.rot_a_max
         
         # Calculate rotational speed
-        self.omega = self.omega + rot_acc*self.time_step_size
+        self.omega = self.omega + rot_acc*self.dT
         if (abs(self.omega) > self.omega_max):
             if self.omega < 0:
                 self.omega = -self.omega_max
@@ -454,7 +454,7 @@ class SAPF:
                 self.omega = self.omega_max
 
         # Calculate rotation
-        self.theta = self.theta + self.omega*self.time_step_size
+        self.theta = self.theta + self.omega*self.dT
 
 
         # Calculate linear acceleration
@@ -467,13 +467,13 @@ class SAPF:
                 lin_a = self.lin_a_max
 
         # Calculate linear velocity
-        self.vel = self.vel + lin_a*self.time_step_size
+        self.vel = self.vel + lin_a*self.dT
         if self.vel > self.v_max:
             self.vel = self.v_max
 
         # Calculate position
-        x = self.pos[0] + cos(self.theta)*self.vel*self.time_step_size
-        y = self.pos[1] + sin(self.theta)*self.vel*self.time_step_size
+        x = self.pos[0] + cos(self.theta)*self.vel*self.dT
+        y = self.pos[1] + sin(self.theta)*self.vel*self.dT
         self.pos = np.array([x, y])
     
         return self.pos, self.theta
@@ -657,18 +657,18 @@ if __name__ == "__main__":
         start_theta = atan2(goal[1] - start[1], goal[0] - start[0])
 
         obstacles = []
-        for h in range(30):
+        for h in range(20):
             obstacles.append([(random.random()-0.5)*20, (random.random()-0.5)*20])
         # obstacles = [[3.4620780011110384, -6.022094011188084], [-4.009974079787394, -0.6485367921078513], [-7.36096762363364, 7.216330086697337], [5.608744401297672, 1.850811724550809], [3.8458299368470623, 3.357341808539937], [-4.778073368033663, -5.501141866315759], [4.723132838747985, 0.3845932731672015], [-2.229574295791508, 2.036716162637534], [4.171285482646521, 3.7728185792673266], [-6.218284379822736, 5.97907738914949], [4.154923208102396, 1.8794276841810884], [-2.9544228765998177, 0.4480890828980719], [0.8345912954350894, 0.9778563383034644], [-6.743270413377292, 0.4883006991849541], [-5.667493154441951, -7.785785428113856], [-0.35529269417974874, -1.6953325996094204], [-6.258261636260494, -7.750274910776324], [5.673472479630764, -1.7661319837998537], [-1.8415642436138828, 6.773339898825298], [3.224003003417552, 3.289856053257889]]
-        # obstacles = [[5,4]]
+        # obstacles = [[5,5]]
         obstacles = np.array(obstacles)
 
         humans = []
-        # for h in range(0):
-        #     humans.append([[(random.random()-0.5)*14, (random.random()-0.5)*14], [random.random()-0.5, random.random()-0.5]])
-        #     scale = sqrt(humans[h][1][0]**2 + humans[h][1][1]**2)        
-        #     humans[h][1][0] = humans[h][1][0] / scale
-        #     humans[h][1][1] = humans[h][1][1] / scale
+        for h in range(10):
+            humans.append([[(random.random()-0.5)*14, (random.random()-0.5)*14], [random.random()-0.5, random.random()-0.5]])
+            scale = sqrt(humans[h][1][0]**2 + humans[h][1][1]**2)        
+            humans[h][1][0] = humans[h][1][0] / scale
+            humans[h][1][1] = humans[h][1][1] / scale
         # humans = [[[-7.628100894388067, 3.4154098195069467], [0.8049132248720982, 0.5933925348586712]], [[-5.466481775607566, -6.896318233696028], [-0.010661367814394045, -0.9999431660031114]], [[-3.312477282810234, -2.0009274781740807], [-0.6587384015591221, -0.7523720610916734]], [[3.5389702000507945, 0.05233796970694371], [0.9495008281317766, -0.31376452536427735]], [[4.927280407180085, 5.4040645428380785], [-0.41194351355772246, -0.9112093840812432]], [[-2.6019992670325376, -6.628660260019831], [-0.9304019911509825, 0.3665407683495615]], [[3.8934643935681468, -3.7715344243867435], [0.8467107583147311, -0.5320534670069291]], [[-4.49657147274171, -2.0257417935565734], [0.9215614591575776, 0.3882325037852399]], [[7.054064494277485, -6.948301300913004], [-0.9998381819074005, -0.01798916340755726]], [[6.089431096668327, -3.785125599146481], [0.9005975797225737, 0.43465388459996807]]]
         humans = np.array(humans)
         
@@ -676,7 +676,7 @@ if __name__ == "__main__":
         sapf = SAPF()
         sapf.init(new_start_pos=start, new_start_theta=start_theta, new_goal=goal, new_obstacles=obstacles, new_humans=humans)
 
-        result = sapf.simulate_path(plot_path=True, plot_more=False, debug=False)
+        result = sapf.simulate_path(plot_path=True, plot_more=True, debug=False)
         print(result)
 
 
@@ -696,7 +696,7 @@ if __name__ == "__main__":
 
         save_plot = True
         show_path = False
-        for t in range(1000):
+        for t in range(50):
             print("test:", t),
 
             # Start and goal

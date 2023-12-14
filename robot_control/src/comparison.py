@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import random
 from dynamic_window_approach import DWA
-from math import atan2, sqrt, sin, cos, radians, atan2, dist, pi, floor
+from math import atan2, sqrt, sin, cos, radians, atan2, dist, pi, floor, ceil
 from numpy.linalg import norm
 from safe_artificial_potential_fields import SAPF
 from human_cost import Human_cost as HC
@@ -14,8 +14,8 @@ import time
 def plot_map_and_save_figure(dwa_x, dwa_y, sapf_x, sapf_y, obstacles, humans, start, goal, x_cent, y_cent, map_width, iter, goalth):
     # Plot settings
     figure, axes = plt.subplots()
-    plt.xlim([x_cent - 0.5*map_width, x_cent + map_width*0.5])
-    plt.ylim([y_cent - 0.5*map_width, y_cent + map_width*0.5])
+    plt.xlim([x_cent - 0.55*map_width, x_cent + map_width*0.55])
+    plt.ylim([y_cent - 0.55*map_width, y_cent + map_width*0.55])
     axes.set_aspect(1)
     plt.title("Map")
     plt.grid()
@@ -145,7 +145,7 @@ def simulate(end_i, start_i=0):
     
     max_iterations = 500
     goal_th = 0.6
-    dT = 0.1
+    dT = 0.25
     
     
     dwa_stats = {}
@@ -173,10 +173,25 @@ def simulate(end_i, start_i=0):
         
         thetastart = (random.random()-0.5)*2*pi
 
+        ## Hardcoded start and goal
+        # xstart, ystart = -9,-9
+        # xgoal, ygoal = 9,9
+        # thetastart = atan2(ygoal-ystart, xgoal-xstart)
 
+        empty_list = []
         obstacles = []
         people = []
 
+        # Walls        
+        # for wx in np.arange(floor(map_x_cent - 0.5*map_width), ceil(map_x_cent + map_width*0.5), 0.1):
+        #     obstacles.append([wx, map_y_cent - 0.5*map_width])
+        #     obstacles.append([wx, map_y_cent + 0.5*map_width])
+        # for wy in np.arange(floor(map_y_cent - 0.5*map_width), ceil(map_y_cent + map_width*0.5), 0.1):
+        #     obstacles.append([map_x_cent - 0.5*map_width, wy])
+        #     obstacles.append([map_x_cent + 0.5*map_width, wy])
+
+
+        # Obstacles
         if num_obstacles > 0:    
             for j in range(num_obstacles):
                 x_obs = (random.random()- 0.5)*map_width*0.8 + map_x_cent
@@ -185,7 +200,9 @@ def simulate(end_i, start_i=0):
                     x_obs = (random.random()- 0.5)*map_width*0.8 + map_x_cent
                     y_obs = (random.random()- 0.5)*map_width*0.8 + map_y_cent
                 obstacles.append([x_obs,  y_obs])
+        # obstacles = [[3.4620780011110384, -6.022094011188084], [-4.009974079787394, -0.6485367921078513], [-7.36096762363364, 7.216330086697337], [5.608744401297672, 1.850811724550809], [3.8458299368470623, 3.357341808539937], [-4.778073368033663, -5.501141866315759], [4.723132838747985, 0.3845932731672015], [-2.229574295791508, 2.036716162637534], [4.171285482646521, 3.7728185792673266], [-6.218284379822736, 5.97907738914949], [4.154923208102396, 1.8794276841810884], [-2.9544228765998177, 0.4480890828980719], [0.8345912954350894, 0.9778563383034644], [-6.743270413377292, 0.4883006991849541], [-5.667493154441951, -7.785785428113856], [-0.35529269417974874, -1.6953325996094204], [-6.258261636260494, -7.750274910776324], [5.673472479630764, -1.7661319837998537], [-1.8415642436138828, 6.773339898825298], [3.224003003417552, 3.289856053257889]]
             
+        # Humans
         if num_humans > 0:
             for j in range(num_humans):
                 
@@ -196,6 +213,7 @@ def simulate(end_i, start_i=0):
                     y_hum = (random.random()- 0.5)*map_width*0.8 + map_y_cent
                 
                 pos = [x_hum, y_hum]
+                # obstacles.append(pos)
                 
                 dirx = (random.random()-0.5)
                 diry = (random.random()-0.5)
@@ -203,10 +221,12 @@ def simulate(end_i, start_i=0):
                 dir = [(1/size) * dirx, (1/size)*diry]
 
                 people.append([pos, dir])
+        # people = [[[-7.628100894388067, 3.4154098195069467], [0.8049132248720982, 0.5933925348586712]], [[-5.466481775607566, -6.896318233696028], [-0.010661367814394045, -0.9999431660031114]], [[-3.312477282810234, -2.0009274781740807], [-0.6587384015591221, -0.7523720610916734]], [[3.5389702000507945, 0.05233796970694371], [0.9495008281317766, -0.31376452536427735]], [[4.927280407180085, 5.4040645428380785], [-0.41194351355772246, -0.9112093840812432]], [[-2.6019992670325376, -6.628660260019831], [-0.9304019911509825, 0.3665407683495615]], [[3.8934643935681468, -3.7715344243867435], [0.8467107583147311, -0.5320534670069291]], [[-4.49657147274171, -2.0257417935565734], [0.9215614591575776, 0.3882325037852399]], [[7.054064494277485, -6.948301300913004], [-0.9998381819074005, -0.01798916340755726]], [[6.089431096668327, -3.785125599146481], [0.9005975797225737, 0.43465388459996807]]]
                 
 
         ### DWA ###
         dwa = DWA()
+        dwa.dT = dT
         
         dwa_iter = 0
         
@@ -271,6 +291,7 @@ def simulate(end_i, start_i=0):
         ### SAPF ###
         sapf = SAPF(goal=np.array([xgoal,ygoal]), start_pos=np.array([xstart, ystart]), start_theta=thetastart,
                     obstacles=np.array(obstacles), humans=np.array(people), goal_th=goal_th)
+        sapf.dT = dT
         
         sapf_iter = 0
         
@@ -303,7 +324,7 @@ def simulate(end_i, start_i=0):
             sapf_y.append(sapf.pos[1])
             sapf_theta.append(sapf.theta)
             
-            sapf_time.append(sapf_time[-1] + sapf.time_step_size)
+            sapf_time.append(sapf_time[-1] + sapf.dT)
             
             # If at goal
             if dist(sapf.pos, [xgoal, ygoal]) < goal_th:
@@ -347,4 +368,4 @@ def simulate(end_i, start_i=0):
         
 
 if __name__ == "__main__":
-    simulate(start_i=0, end_i=100)
+    simulate(start_i=0, end_i=500)

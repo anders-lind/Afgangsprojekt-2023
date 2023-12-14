@@ -46,13 +46,13 @@ class DWA:
         self.max_iterations= 600
         self.goal_th = goal_th
         
-        self.a_max = 15 #m/s²
-        self.alpha_max = pi*110/180 #rad/s²
+        self.a_max = 5 #m/s²
+        self.alpha_max = pi #rad/s²
         
         self.v_max = 1.5 #m/s
         self.v_min = 0 #m/s
-        self.w_max = pi/3 #rad/s
-        self.w_min = - self.w_max #rad/s    
+        self.w_max = pi/2 #rad/s
+        self.w_min = -self.w_max #rad/s    
         
         self.stop = False
         
