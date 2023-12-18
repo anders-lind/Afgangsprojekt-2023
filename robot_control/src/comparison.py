@@ -213,7 +213,6 @@ def simulate(end_i, start_i=0):
                     y_hum = (random.random()- 0.5)*map_width*0.8 + map_y_cent
                 
                 pos = [x_hum, y_hum]
-                obstacles.append(pos)
                 
                 dirx = (random.random()-0.5)
                 diry = (random.random()-0.5)

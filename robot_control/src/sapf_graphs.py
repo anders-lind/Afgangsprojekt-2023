@@ -758,14 +758,14 @@ def gamma_drel():
     plt.plot([ 2*d_vort - d_safe, 2*d_vort ], [0, 0], color = (0, 0, 1))
     
     
-    plt.title("The Rotation Function $\gamma$", fontsize=25)
+    # plt.title("$\gamma$", fontsize=25)
     plt.xlim(start, end)
     plt.ylim(-0.1, 1.7)
     axes.grid() 
 
     
     plt.xlabel("$d_{O_i}$", fontsize=20)
-    plt.ylabel("|$\gamma(H(d_{O_i})$|", fontsize=20)   
+    plt.ylabel("|$\gamma(d_{O_i})$|", fontsize=20)
     
     # disabling xticks by Setting xticks to an empty list
     plt.xticks([d_safe, d_vort, 2*d_vort-d_safe], ['$d_{safe}$', '$d_{vort}$', '$2 \cdot d_{vort} - d_{safe}$'], fontsize=12)  
@@ -786,7 +786,7 @@ def gamma_drel():
     
     plt.plot(x, y, color= (0, 0, 1))
     
-    plt.title("The Infuence Function $H(d_{O_i})$", fontsize=25)
+    # plt.title("The Infuence Function $H(d_{O_i})$", fontsize=25)
     plt.xlim(start, end)
     plt.ylim(-0.1, 1.1)
     axes2.grid() 
@@ -1051,6 +1051,6 @@ if __name__ == "__main__":
     # rep_graph()
     #vortex_and_attract()
     #apf_full()
-    #gamma_drel()
+    gamma_drel()
     #sapf_graph()
-    sapf_graph_with_people()
+    # sapf_graph_with_people()
