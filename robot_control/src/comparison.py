@@ -213,7 +213,7 @@ def simulate(end_i, start_i=0):
                     y_hum = (random.random()- 0.5)*map_width*0.8 + map_y_cent
                 
                 pos = [x_hum, y_hum]
-                # obstacles.append(pos)
+                obstacles.append(pos)
                 
                 dirx = (random.random()-0.5)
                 diry = (random.random()-0.5)
@@ -225,7 +225,7 @@ def simulate(end_i, start_i=0):
                 
 
         ### DWA ###
-        dwa = DWA()
+        dwa = DWA(simT=1)
         dwa.dT = dT
         
         dwa_iter = 0
@@ -248,7 +248,7 @@ def simulate(end_i, start_i=0):
             dwa_iter += 1
 
             v, w, poses, scores = dwa.dwa(vcur=dwa_vels[-1], wcur=dwa_wels[-1], xcur=dwa_x[-1], ycur=dwa_y[-1], thetacur=dwa_theta[-1], 
-                                           xgoal=xgoal, ygoal=ygoal, obstacles=obstacles, people=people)
+                                           xgoal=xgoal, ygoal=ygoal, obstacles=obstacles, people=empty_list)
             
             
             dwa_vels.append(v)
@@ -290,7 +290,7 @@ def simulate(end_i, start_i=0):
 
         ### SAPF ###
         sapf = SAPF(goal=np.array([xgoal,ygoal]), start_pos=np.array([xstart, ystart]), start_theta=thetastart,
-                    obstacles=np.array(obstacles), humans=np.array(people), goal_th=goal_th)
+                    obstacles=np.array(obstacles), humans=np.array(empty_list), goal_th=goal_th)
         sapf.dT = dT
         
         sapf_iter = 0
