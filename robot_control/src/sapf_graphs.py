@@ -12,6 +12,8 @@ from numpy.linalg import norm
 def att_graph():
     d_star = 0.3
     zeta = 2
+    
+    
 
     nablaU_att = []
     x = []
@@ -289,6 +291,8 @@ def att_graph():
 
 
 def sapf_graph():
+    hc = HC()
+    k_hum = 2
     xend = 32
     xstart = -1
 
@@ -298,6 +302,9 @@ def sapf_graph():
     jump = 1.0
     
     obstacle = np.array([[14, 10], [7, 23]] )
+    obstacle = np.array([ [7, 23]] )
+    # obstacle = np.array([])
+    humans = np.array([[[14, 10], [1,-0]]])
     goal = np.array([20, 20])
     
     Q_star_obs = 15
@@ -383,6 +390,61 @@ def sapf_graph():
                     
                 ux[j][i] += nablaU_repObs_i[0]
                 uy[j][i] += nablaU_repObs_i[1]
+
+
+
+            for h in range(len(humans)):
+                alpha = atan2(goal[1] - y[j],goal[0] - x[i]) - atan2(y[j] - humans[h][0][1],x[i] - humans[h][0][0])
+                alpha = atan2(sin(alpha), cos(alpha))
+                
+                d_O_i = sqrt((x[i] - humans[h][0][0])**2 + (y[j] - humans[h][0][1])**2)
+                if d_O_i <= 0: d_O_i = 0.0000001
+                
+                # # Calculate repulsive potential for each object
+                D_alpha = 0
+                          
+                if alpha <= 0:
+                    D_alpha = +1
+                else:
+                    D_alpha = -1
+                
+                if d_O_i < d_safe_obs:
+                    d_rel_O_i = 0
+                elif d_O_i > 2*d_vort_obs - d_safe_obs:
+                    d_rel_O_i = 1
+                else:
+                    d_rel_O_i = (d_O_i - d_safe_obs)/(2*(d_vort_obs - d_safe_obs))
+
+                if d_rel_O_i <= 0.5:
+                    gamma = pi*D_alpha*d_rel_O_i
+                else:
+                    gamma = pi*D_alpha*(1-d_rel_O_i)
+
+                R_gamma = np.array([
+                    [cos(gamma), -sin(gamma)],
+                    [sin(gamma), cos(gamma)] 
+                ])
+                nablaU_rep_hum_i = np.array([0,0])
+                if (d_O_i < Q_star_obs):
+                    pos = np.array([x[i], y[j]])
+                    robot_relative_pos = pos - humans[h][0]
+                    human_ori = humans[h][1]
+                    nablaU_rep_hum_i = np.array(hc.get_cost_xy(x=robot_relative_pos[0]*0.5, y=robot_relative_pos[1]*0.5, people_angle_x=human_ori[0], people_angle_y=human_ori[1]))
+                    if norm(pos - humans[h][0]) > 0.1:
+                        nablaU_rep_hum_i = k_hum * nablaU_rep_hum_i * (pos - humans[h][0])/norm(pos - humans[h][0])
+                    else:
+                        nablaU_rep_hum_i = np.zeros(2)
+                else:
+                    pass
+
+                nablaU_rep_hum_i = np.matmul(nablaU_rep_hum_i, R_gamma)
+
+
+                # # Add repulsive potential to total repulsive potential                   
+                ux[j][i] += nablaU_rep_hum_i[0]
+                uy[j][i] += nablaU_rep_hum_i[1]
+
+
             
             siz = sqrt(ux[j][i]**2 + uy[j][i]**2)
             if siz > arrow_max: 
@@ -400,11 +462,19 @@ def sapf_graph():
         if i == 0:
             plt.plot( obstacle[i][0],obstacle[i][1], color = (1, 0, 0), linestyle= "", marker = "o", label="Obstacle")
         plt.plot( obstacle[i][0],obstacle[i][1], color = (1, 0, 0), linestyle= "", marker = "o")
+    
+    for i in range(len(humans)):
+        if i == 0:
+            plt.plot( humans[i][0][0],humans[i][0][1], color = (0, 0, 1), linestyle= "", marker = "o", label="Human")
+        plt.plot( humans[i][0][0],humans[i][0][1], color = (0, 0, 1), linestyle= "", marker = "o")
+        arrow = plt.arrow(humans[i][0][0],humans[i][0][1],humans[i][1][0],humans[i][1][1], color = (0, 0, 1), label="Direction", width = 0.1, head_length=0.7, head_width=0.7)
         
     plt.plot( goal[0],goal[1], color = (0, 1, 0), linestyle= "", marker = "o", label="Goal")
     
-    
-    axes.legend(framealpha = 1)
+    plt.scatter( -1 ,-1, color=(0,0,1),marker=r'$\rightarrow$',s=60, label='Orientation' )
+
+
+    axes.legend(framealpha = 1, bbox_to_anchor=(0.6,0.7))
     
 
     plt.title("SAPF Map")
@@ -1051,6 +1121,6 @@ if __name__ == "__main__":
     # rep_graph()
     #vortex_and_attract()
     #apf_full()
-    gamma_drel()
-    #sapf_graph()
+    # gamma_drel()
+    sapf_graph()
     # sapf_graph_with_people()

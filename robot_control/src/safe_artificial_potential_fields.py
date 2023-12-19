@@ -1,4 +1,4 @@
-    #!/usr/bin/env python3
+#!/usr/bin/env python3
 
 import rospy
 from math import atan2, sqrt, sin, cos, radians, atan2, dist, pi, floor
@@ -49,7 +49,7 @@ class SAPF:
             dT = 0.1,
             goal_th = 0.6,
             max_iterations = 500,
-            noise_mag = 0.000, #0.000
+            noise_mag = 0.000, #0.001
             crash_dist = 0.10
         ):
 
@@ -91,6 +91,7 @@ class SAPF:
         self.crash_dist = crash_dist
 
         ### Start configruation ###
+        self.is_ready = False
         self.start_pos = start_pos.copy()   # Required, otherwise memory leek
         self.pos = start_pos
         self.start_theta = start_theta
@@ -108,6 +109,7 @@ class SAPF:
 
 
     def init(self, new_start_pos: np.array([float,float]) = None, new_start_theta: float = None, new_obstacles: np.array([[float,float],[float,float]]) = None, new_humans: np.array([[[float,float],[float,float]],[[float,float],[float,float]]]) = None, new_goal: np.array([float,float]) = None):
+        self.is_ready = True
         self.omega = 0.0
         self.vel = 0.0
         
@@ -156,6 +158,8 @@ class SAPF:
         This method uses SAPF to calculate a linear- and angular velocity for the current state of the robot and map
         """
 
+        if not self.is_ready: print("SAPF is not ready yet: Run init()")
+
         # vel_ref
         pot = self.calc_potential(pos=self.pos, goal=self.goal)
         vel_ref, theta_ref = self.calc_ref_values(pot)
@@ -176,6 +180,9 @@ class SAPF:
         Returns reason for termination.
         Can optionally plot the path and other information.
         """
+
+        if not self.is_ready: print("SAPF is not ready yet: Run init()")
+
         reached_goal = False
         hit_obstacle = False
         hit_human = False
@@ -420,6 +427,9 @@ class SAPF:
         Simulates a single step of the robot which tries to follow the given reference values.
         Both returns and updates its own values to correspond to the new position and orientation
         """
+
+        if not self.is_ready: print("SAPF is not ready yet: Run init()")
+
         # Calculate rotational acceleration
         # Calculate rotational speed
         # Calculate rotation
@@ -482,6 +492,9 @@ class SAPF:
 
     # Returns the reference linear velocity and the reference direction
     def calc_ref_values(self, potential) -> (float, float):
+
+        if not self.is_ready: print("SAPF is not ready yet: Run init()")
+
         theta_ref = atan2(potential[1], potential[0])
         theta_error = theta_ref - self.theta
         theta_error = atan2(sin(theta_error), cos(theta_error)) # wrap [-pi, pi]
@@ -514,6 +527,7 @@ class SAPF:
         #   Add repulsive potential to total repulsive potential
         # Calculate full potential as sum of attractive and repulsive potentials
 
+        if not self.is_ready: print("SAPF is not ready yet: Run init()")
 
         if theta == None:
             theta = self.theta
@@ -552,6 +566,8 @@ class SAPF:
                 D_alpha = +1
             else:
                 D_alpha = -1
+
+            # D_alpha = 1 
             
             if d_O_i < self.d_safe_obs:
                 d_rel_O_i = 0
@@ -649,7 +665,7 @@ if __name__ == "__main__":
 
 
     ### Single Test ###
-    if False:
+    if True:
 
         # Start, goal and obstacles
         start = np.array([-9.0, -9.0])
@@ -658,25 +674,26 @@ if __name__ == "__main__":
 
         obstacles = []
         for h in range(20):
-            obstacles.append([(random.random()-0.5)*20, (random.random()-0.5)*20])
-        # obstacles = [[3.4620780011110384, -6.022094011188084], [-4.009974079787394, -0.6485367921078513], [-7.36096762363364, 7.216330086697337], [5.608744401297672, 1.850811724550809], [3.8458299368470623, 3.357341808539937], [-4.778073368033663, -5.501141866315759], [4.723132838747985, 0.3845932731672015], [-2.229574295791508, 2.036716162637534], [4.171285482646521, 3.7728185792673266], [-6.218284379822736, 5.97907738914949], [4.154923208102396, 1.8794276841810884], [-2.9544228765998177, 0.4480890828980719], [0.8345912954350894, 0.9778563383034644], [-6.743270413377292, 0.4883006991849541], [-5.667493154441951, -7.785785428113856], [-0.35529269417974874, -1.6953325996094204], [-6.258261636260494, -7.750274910776324], [5.673472479630764, -1.7661319837998537], [-1.8415642436138828, 6.773339898825298], [3.224003003417552, 3.289856053257889]]
-        # obstacles = [[5,5]]
+            obstacles.append([(random.random()-0.5)*20*0.8, (random.random()-0.5)*20*0.8])
+        obstacles = [[3.4620780011110384, -6.022094011188084], [-4.009974079787394, -0.6485367921078513], [-7.36096762363364, 7.216330086697337], [5.608744401297672, 1.850811724550809], [3.8458299368470623, 3.357341808539937], [-4.778073368033663, -5.501141866315759], [4.723132838747985, 0.3845932731672015], [-2.229574295791508, 2.036716162637534], [4.171285482646521, 3.7728185792673266], [-6.218284379822736, 5.97907738914949], [4.154923208102396, 1.8794276841810884], [-2.9544228765998177, 0.4480890828980719], [0.8345912954350894, 0.9778563383034644], [-6.743270413377292, 0.4883006991849541], [-5.667493154441951, -7.785785428113856], [-0.35529269417974874, -1.6953325996094204], [-6.258261636260494, -7.750274910776324], [5.673472479630764, -1.7661319837998537], [-1.8415642436138828, 6.773339898825298], [3.224003003417552, 3.289856053257889]]           
+        # obstacles = [[5.5,5]]
         obstacles = np.array(obstacles)
 
         humans = []
         for h in range(10):
-            humans.append([[(random.random()-0.5)*14, (random.random()-0.5)*14], [random.random()-0.5, random.random()-0.5]])
+            humans.append([[(random.random()-0.5)*20*0.8, (random.random()-0.5)*20*0.8], [random.random()-0.5, random.random()-0.5]])
             scale = sqrt(humans[h][1][0]**2 + humans[h][1][1]**2)        
             humans[h][1][0] = humans[h][1][0] / scale
             humans[h][1][1] = humans[h][1][1] / scale
-        # humans = [[[-7.628100894388067, 3.4154098195069467], [0.8049132248720982, 0.5933925348586712]], [[-5.466481775607566, -6.896318233696028], [-0.010661367814394045, -0.9999431660031114]], [[-3.312477282810234, -2.0009274781740807], [-0.6587384015591221, -0.7523720610916734]], [[3.5389702000507945, 0.05233796970694371], [0.9495008281317766, -0.31376452536427735]], [[4.927280407180085, 5.4040645428380785], [-0.41194351355772246, -0.9112093840812432]], [[-2.6019992670325376, -6.628660260019831], [-0.9304019911509825, 0.3665407683495615]], [[3.8934643935681468, -3.7715344243867435], [0.8467107583147311, -0.5320534670069291]], [[-4.49657147274171, -2.0257417935565734], [0.9215614591575776, 0.3882325037852399]], [[7.054064494277485, -6.948301300913004], [-0.9998381819074005, -0.01798916340755726]], [[6.089431096668327, -3.785125599146481], [0.9005975797225737, 0.43465388459996807]]]
+        humans = [[[-7.628100894388067, 3.4154098195069467], [0.8049132248720982, 0.5933925348586712]], [[-5.466481775607566, -6.896318233696028], [-0.010661367814394045, -0.9999431660031114]], [[-3.312477282810234, -2.0009274781740807], [-0.6587384015591221, -0.7523720610916734]], [[3.5389702000507945, 0.05233796970694371], [0.9495008281317766, -0.31376452536427735]], [[4.927280407180085, 5.4040645428380785], [-0.41194351355772246, -0.9112093840812432]], [[-2.6019992670325376, -6.628660260019831], [-0.9304019911509825, 0.3665407683495615]], [[3.8934643935681468, -3.7715344243867435], [0.8467107583147311, -0.5320534670069291]], [[-4.49657147274171, -2.0257417935565734], [0.9215614591575776, 0.3882325037852399]], [[7.054064494277485, -6.948301300913004], [-0.9998381819074005, -0.01798916340755726]], [[6.089431096668327, -3.785125599146481], [0.9005975797225737, 0.43465388459996807]]]
+        # humans = []
         humans = np.array(humans)
         
             
         sapf = SAPF()
         sapf.init(new_start_pos=start, new_start_theta=start_theta, new_goal=goal, new_obstacles=obstacles, new_humans=humans)
 
-        result = sapf.simulate_path(plot_path=True, plot_more=True, debug=False)
+        result = sapf.simulate_path(plot_path=True, plot_more=False, debug=False)
         print(result)
 
 
@@ -685,7 +702,7 @@ if __name__ == "__main__":
 
     
     ### Multiple test ###
-    if True:
+    if False:
         sapf = SAPF()
         time = []
         goals = 0
