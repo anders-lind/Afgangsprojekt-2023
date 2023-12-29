@@ -98,16 +98,21 @@ def time_in_social_shapes(x, y, humans, dT):
         in_social = False    
         for i in range(len(humans)):
             if dist((x[j], y[j]), (humans[i][0][0], humans[i][0][1])) < hc.intimate and in_intimate == False:
-                time_in_intimate += dT
                 in_intimate = True
             
             elif dist((x[j], y[j]), (humans[i][0][0], humans[i][0][1])) < hc.personal and in_personal == False:
-                time_in_personal += dT
                 in_personal = True
                 
             elif dist((x[j], y[j]), (humans[i][0][0], humans[i][0][1])) < hc.social and in_social == False:
-                time_in_social += dT
                 in_social = True
+            
+        if in_intimate:
+            time_in_intimate += dT
+        elif in_personal:
+            time_in_personal += dT
+        elif in_social:
+            time_in_social += dT
+                
                 
     return round(time_in_intimate, 2), round(time_in_personal, 2), round(time_in_social, 2)
 
@@ -156,6 +161,7 @@ def simulate(end_i, start_i=0):
     
     dwa_stats = {}
     sapf_stats = {}
+    total_path = 0
     
     
     dwa_breaks = 0
@@ -177,12 +183,14 @@ def simulate(end_i, start_i=0):
             xgoal = (random.random()- 0.5)*map_width*0.95 + map_x_cent 
             ygoal = (random.random()- 0.5)*map_width*0.95 + map_y_cent
         
+        total_path += dist([xgoal,ygoal],[xstart,ystart])
+        
         thetastart = (random.random()-0.5)*2*pi
 
-        ## Hardcoded start and goal
-        xstart, ystart = -9,-9
-        xgoal, ygoal = 9,9
-        thetastart = atan2(ygoal-ystart, xgoal-xstart)
+        # Hardcoded start and goal
+        # xstart, ystart = -9,-9
+        # xgoal, ygoal = 9,9
+        # thetastart = atan2(ygoal-ystart, xgoal-xstart)
 
         empty_list = []
         obstacles = []
@@ -235,8 +243,7 @@ def simulate(end_i, start_i=0):
                 
 
         ### DWA ###
-        dwa = DWA(simT=1)
-        dwa.dT = dwa_dT
+        dwa = DWA(simT=1, dT=dwa_dT)
         
         dwa_iter = 0
         
@@ -257,8 +264,12 @@ def simulate(end_i, start_i=0):
             dwa_iter += 1
 
 
+            # Using people
             v, w, poses, scores = dwa.dwa(vcur=dwa_vels[-1], wcur=dwa_wels[-1], xcur=dwa_x[-1], ycur=dwa_y[-1], thetacur=dwa_theta[-1], 
                                            xgoal=xgoal, ygoal=ygoal, obstacles=obstacles, people=people)
+            # Using people as obstacles
+            # v, w, poses, scores = dwa.dwa(vcur=dwa_vels[-1], wcur=dwa_wels[-1], xcur=dwa_x[-1], ycur=dwa_y[-1], thetacur=dwa_theta[-1], 
+            #                                xgoal=xgoal, ygoal=ygoal, obstacles=obstacles_and_people, people=empty_list)
             
             
             dwa_vels.append(v)
@@ -301,9 +312,15 @@ def simulate(end_i, start_i=0):
 
         ### SAPF ###
         sapf = SAPF()
-        sapf.init(new_goal=np.array([xgoal,ygoal]), new_start_pos=np.array([xstart, ystart]), new_start_theta=thetastart, new_obstacles=np.array(obstacles), new_humans=np.array(people)) 
         sapf.dT = sapf_dT
-
+        
+        # Using people
+        sapf.init(new_goal=np.array([xgoal,ygoal]), new_start_pos=np.array([xstart, ystart]), new_start_theta=thetastart, new_obstacles=np.array(obstacles), new_humans=np.array(people)) 
+        
+        # Using people as obstacles
+        # sapf.init(new_goal=np.array([xgoal,ygoal]), new_start_pos=np.array([xstart, ystart]), new_start_theta=thetastart, new_obstacles=np.array(obstacles_and_people), new_humans=np.array(empty_list)) 
+        
+        
         sapf_iter = 0
 
         sapf_x = [xstart]
@@ -366,7 +383,9 @@ def simulate(end_i, start_i=0):
             sapf_breaks += 1
         
         plot_map_and_save_figure(dwa_x, dwa_y, sapf_x, sapf_y, obstacles,people, [xstart, ystart], [xgoal, ygoal], map_x_cent, map_y_cent, map_width, i, goal_th)
-    
+
+        
+    print("Avg shortest path length:", total_path/(end_i - start_i))
         
     with open('robot_control/src/comparison_data/sim_data/dwa.txt', 'w', encoding='UTF8', newline='') as f:
         f.write(f"Number of breaks: {dwa_breaks} \n")

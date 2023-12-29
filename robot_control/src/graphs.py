@@ -5,7 +5,7 @@ import math
 from math import pi, cos, sin, sqrt, atan2
 from human_cost import Human_cost as HC
 from numpy.linalg import norm
-
+import csv
 
 
 
@@ -1116,11 +1116,22 @@ def rep_graph():
     plt.show()
 
 
+
+def stacked_column_graph():
+    with open('file.csv', newline='') as f:
+        reader = csv.reader(f)
+        data = list(reader)
+
+    print(data)
+
+
 if __name__ == "__main__":
     # att_graph()
     # rep_graph()
     #vortex_and_attract()
     #apf_full()
     # gamma_drel()
-    sapf_graph()
+    # sapf_graph()
     # sapf_graph_with_people()
+
+    stacked_column_graph()
